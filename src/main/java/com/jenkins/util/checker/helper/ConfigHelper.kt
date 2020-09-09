@@ -2,6 +2,7 @@ package com.jenkins.util.checker.helper
 
 import com.jenkins.util.checker.utils.getFile
 import com.jenkins.util.checker.utils.isEqual
+import com.jenkins.util.checker.utils.stringContainsItems
 import java.io.*
 import java.nio.file.Files
 import java.nio.file.Path
@@ -26,6 +27,11 @@ class ConfigHelper(private val args: Array<String>?) {
     //Files Helper
     private lateinit var printWriter: PrintWriter
 
+    //List Array for Files...
+    private val listFiles: MutableList<String> = ArrayList()
+
+    private val grouping: MutableMap<Int, MutableMap<String, String>> = mutableMapOf()
+
     fun initFiles(flavor: String, nodesDirPath: String, configPath: String, destinationPath: String) {
         //Init FileOutput
         fileOutput = File("$destinationPath/outputConfig_WEB.txt")
@@ -42,6 +48,8 @@ class ConfigHelper(private val args: Array<String>?) {
 
         //Init Config File
         configFile = getFile(configPath)
+
+        populateProperties()
 
         //Checking Data..
         checkMappings(nodeDirFiles, flavor)
@@ -108,25 +116,47 @@ class ConfigHelper(private val args: Array<String>?) {
                                 .sorted()
                                 .collect(Collectors.toList())
 
+                        val groupes: MutableMap<String, String> = mutableMapOf()
                         configCollect?.let {
                             it.removeAt(0)
                             //Count Instance Qty, (-1 because the root are counted in it)
                             it.forEachIndexed { index, lastConfigPath ->
+                                if (lastConfigPath.contains("/") || lastConfigPath.contains("\\")) {
+                                    val cleanLastConfigPath = lastConfigPath.replace("/", "\\")
+                                    val indexing = cleanLastConfigPath.lastIndexOf("\\")
+                                    val lastDir = cleanLastConfigPath.substring(indexing + 1)
+
+                                    for (datas in listFiles) {
+                                        if (lastDir.contains(datas)) {
+                                            groupes[datas] = lastConfigPath
+                                            //println("Path:: $lastConfigPath <--> $datas")
+                                        }
+                                    }
+
+                                    /*if (stringContainsItems(lastDir, listFiles, grouping)) {
+                                        //println("#$index --> $lastConfigPath")
+                                    }*/
+
+                                }
                                 //if (index != 0) {
-                                if (it.size < 2) {
+                                /*if (it.size < 3) {
                                     printWriter.println("<-- Instance #${index + 1} -->")
                                 } else {
                                     printWriter.println("<-- Instance(s) #${index + 1} -->")
                                 }
                                 printWriter.println("A) Path\t:: $lastConfigPath")
                                 findPropertiesFiles(lastConfigPath) //Go to 'findPropertiesFiles' function
-                                //}
+                                //}*/
                             }
+
+                            grouping.put(index, groupes)
                         }
                     } catch (e: IOException) {
                         println("Err:: ${e.message.toString()}")
                     }
                 }
+
+                println("Grouping:: $grouping")
             } else {
                 println("No Directory Founds in ${this.nodeDirFiles}")
             }
@@ -141,7 +171,18 @@ class ConfigHelper(private val args: Array<String>?) {
             val lists = it.listFiles() //Listing Files in end of Path (to get .properties files)
             if (lists != null && lists.isNotEmpty()) {
                 for (file in lists) {
-                    listActualProps.add(file.name) //Adding properties name to List
+                    if (file.path.contains("mklik")) {
+                        println("true --> ${file.path}")
+                    }
+                    /*if (file.path.contains("mklik")){
+                        println("Path:: ${file.path}")
+                    }*/
+                    /*for (testData in listFiles) {
+                        if (file.path.contains("mklik")){
+                            println("Path:: ${file.path} || Data $testData")
+                        }
+                            //listActualProps.add(file.name) //Adding properties name to List
+                    }*/
                 }
                 printWriter.print("B) File\t:: ")
                 if (listActualProps.size < 2) {
@@ -150,6 +191,8 @@ class ConfigHelper(private val args: Array<String>?) {
                     printWriter.println("(${listActualProps.size}) Item(s) Found in Directory!")
                 }
                 printWriter.println("C) List of File\t:: $listActualProps") //Printing the list of file name
+
+                //populateProperties(listActualProps) //TESTINGGGGG
 
                 checkConfigStatus(listActualProps) //Go to 'checkConfigStatus' function
                 printWriter.println("----------------------------------------------------")
@@ -171,8 +214,8 @@ class ConfigHelper(private val args: Array<String>?) {
 
             //Comparing the Expected and Actual Properties File that has been Mapping via Jenkins..
             isEqual(listExpectedProps, listActualProps).also {
-                var expectedSize: Int = listExpectedProps.size
-                var actualSize: Int = listActualProps.size
+                val expectedSize: Int = listExpectedProps.size
+                val actualSize: Int = listActualProps.size
 
                 if (it) {
                     if (listActualProps.size < 2) {
@@ -216,6 +259,42 @@ class ConfigHelper(private val args: Array<String>?) {
                     println("Data Not Found :: $i --> FAILED")
                 }
             }*/
+        }
+    }
+
+    private fun populateProperties() {
+        configFile?.let { config ->
+            val envStream = FileInputStream(config) //Load Config Properties from Params
+            properties.load(envStream) //Load as Properties
+
+            println("ISENG-ISENG TEST")
+            val keyProps = properties.propertyNames() //Getting Key values from Properties
+            while (keyProps.hasMoreElements()) { //Iteration
+                val keys = keyProps.nextElement().toString()
+                if (properties.getProperty(keys) == "true") {
+                    if (keys.contains("/")) {
+                        val index = keys.lastIndexOf("/")
+                        val firstValue = keys.substring(0, index)
+                        val lastValue = keys.substring(index + 1)
+
+                        if (listFiles.isEmpty()) {
+                            listFiles.add(firstValue)
+                        } else {
+                            if (!listFiles.contains(firstValue)) {
+                                listFiles.add(firstValue)
+                            }
+                        }
+
+                        println("DATA: $listFiles")
+
+                        println("LAST:: $lastValue")
+                        println("FIRST:: $firstValue")
+
+                        println("-------------------------------")
+                    }
+                }
+                listExpectedProps.add(keys) //Adding to List
+            }
         }
     }
 }
