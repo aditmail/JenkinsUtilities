@@ -1,5 +1,6 @@
 package com.jenkins.util.checker.helper
 
+import com.jenkins.util.checker.models.ErrorSummaries
 import com.jenkins.util.checker.utils.IConfig
 import com.jenkins.util.checker.utils.checkConfigDirectory
 import com.jenkins.util.checker.utils.getFile
@@ -30,14 +31,20 @@ class ConfigHelper(private val args: Array<String>?) : IConfig {
 
     private val listDataProps: MutableList<String>? = ArrayList()
     private val listNodesName: MutableList<File>? = ArrayList()
+    private val listErrorPath: MutableList<ErrorSummaries>? = ArrayList()
 
     //Init Parent Map
+    private val listSummaries: MutableMap<File, MutableMap<MutableList<String>, MutableList<String>>> = mutableMapOf()
     private val mapChildDataGrouping: MutableMap<Int, MutableMap<String, String>> = mutableMapOf()
     private val mapDataGrouping: MutableMap<Int, MutableMap<Int, String>> = mutableMapOf()
 
     //Init Child Map
+    private lateinit var mapSummaries: MutableMap<MutableList<String>, MutableList<String>>
     private lateinit var mapChildGrouping: MutableMap<String, String>
     private lateinit var mapGrouping: MutableMap<Int, String>
+
+    //Init ErrorSummary
+    private lateinit var errorSummaries: ErrorSummaries
 
     fun initFiles(flavor: String, configType: String, nodesDirPath: String, configPath: String, destinationPath: String) {
         //Init FileOutput
@@ -163,6 +170,8 @@ class ConfigHelper(private val args: Array<String>?) : IConfig {
         }
 
         //printWriter.close()
+        errorSummaries(listErrorPath)
+        println("ERR:: $listErrorPath")
         println("Successfully Running the Config Validator!")
     }
 
@@ -278,7 +287,7 @@ class ConfigHelper(private val args: Array<String>?) : IConfig {
                 saveExpectedItems(configFile, key)
 
                 //Comparing the Expected and Actual Properties File that has been Mapping via Jenkins..
-                compareData(listExpectedItems, listActualItems)
+                compareData(filePath, listExpectedItems, listActualItems)
             }
         }
 
@@ -317,7 +326,7 @@ class ConfigHelper(private val args: Array<String>?) : IConfig {
         }
     }
 
-    private fun compareData(listExpectedItems: MutableList<String>?, listActualItems: MutableList<String>?) {
+    private fun compareData(listFile: File?, listExpectedItems: MutableList<String>?, listActualItems: MutableList<String>?) {
         if (listExpectedItems != null && listActualItems != null) {
             isContentEquals(listExpectedItems, listActualItems).also {
                 val expectedSize: Int = listExpectedItems.size
@@ -330,6 +339,7 @@ class ConfigHelper(private val args: Array<String>?) : IConfig {
                         pwLine("**PASSED --> $expectedSize Data(s) from Config (.txt) are Successfully Mapped to Selected Directories")
                     }
                 } else {
+                    mapSummaries = mutableMapOf()
                     if (expectedSize > actualSize) {
                         val differenceSize = expectedSize - actualSize
                         if (differenceSize < 2) {
@@ -360,10 +370,26 @@ class ConfigHelper(private val args: Array<String>?) : IConfig {
                     pwLine("**EXPECTING --> $listExpectedItems but Found $listActualItems")
                     pwLine("==============================================================")
 
+                    errorSummaries = ErrorSummaries(listFile, listExpectedItems, listActualItems)
+                    listErrorPath?.add(errorSummaries)
+                    //println(errorSummaries)
+                    println("List: $listErrorPath")
                     //printWriter.println("**ACTION --> Please Check the Path/Jenkins Configuration Again for Correction/Validation")
                 }
             }
             printWriter.println()
+        }
+    }
+
+    private fun errorSummaries(listErrorPath: MutableList<ErrorSummaries>?) {
+        listErrorPath?.let {
+            if (!it.isNullOrEmpty()) {
+                pwLine(" ===================== ERROR SUMMARIES ===================== ")
+                for ((index, dirPaths) in it.withIndex()) {
+                    pwLine("Path #$index:: ${dirPaths.errorPath}")
+                    pwLine("Expecting ${dirPaths.listExpected} but Found ${dirPaths.listActualItems}")
+                }
+            }
         }
     }
 
