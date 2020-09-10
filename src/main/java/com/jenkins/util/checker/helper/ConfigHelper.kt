@@ -2,6 +2,7 @@ package com.jenkins.util.checker.helper
 
 import com.jenkins.util.checker.utils.checkConfigDirectory
 import com.jenkins.util.checker.utils.getFile
+import com.jenkins.util.checker.utils.isContentEquals
 import com.jenkins.util.checker.utils.isEqual
 import java.io.*
 import java.nio.file.Files
@@ -30,12 +31,17 @@ class ConfigHelper(private val args: Array<String>?) {
     private val listDataProps: MutableList<String>? = ArrayList()
     private val listNodesName: MutableList<File>? = ArrayList()
 
-    //Init Map
-    private val mapDataGrouping: MutableMap<Int, MutableMap<String, String>> = mutableMapOf()
+    //Init Parent Map
+    private val mapChildDataGrouping: MutableMap<Int, MutableMap<String, String>> = mutableMapOf()
+    private val mapDataGrouping: MutableMap<Int, MutableMap<Int, String>> = mutableMapOf()
 
-    fun initFiles(flavor: String, nodesDirPath: String, configPath: String, destinationPath: String) {
+    //Init Child Map
+    private lateinit var mapChildGrouping: MutableMap<String, String>
+    private lateinit var mapGrouping: MutableMap<Int, String>
+
+    fun initFiles(flavor: String, configType: String, nodesDirPath: String, configPath: String, destinationPath: String) {
         //Init FileOutput
-        fileOutput = File("$destinationPath/outputConfig_WEB.txt")
+        fileOutput = File("$destinationPath/outputConfig_${configType}.txt")
         if (!fileOutput.exists()) {
             fileOutput.createNewFile()
             println("Creating File:: $fileOutput")
@@ -54,48 +60,56 @@ class ConfigHelper(private val args: Array<String>?) {
         populateProperties()
 
         //Checking Data..
-        checkMappings(nodeDirFiles, flavor)
+        checkMappings(nodeDirFiles, flavor, configType)
     }
 
     fun initFiles() {
         if (args?.size == 0 || args?.size != 3) {
             println("Please Input The Parameters That's are Needed")
             println("1st Params --> Build_Flavor")
-            println("2nd Params --> Nodes_Dir_Path")
-            println("3rd Params --> Config_Path")
+            println("2nd Params --> Config_Type")
+            println("3rd Params --> Nodes_Dir_Path")
+            println("4th Params --> Config_Path")
         } else {
+            val buildFlavor = args[0].trim()
+            val configType = args[1].trim()
+            val nodeDir = args[2].trim()
+            val configPath = args[3].trim()
+
             //Init FileOutput
-            fileOutput = File("var/outputConfig_WEB.txt")
+            fileOutput = File("var/outputConfig_${configType}.txt")
             if (!fileOutput.exists()) {
                 fileOutput.createNewFile()
             }
             printWriter = PrintWriter(FileOutputStream(fileOutput), true)
 
             //Init Config Dir
-            nodeDirFiles = File(args[1].trim())
+            nodeDirFiles = File(nodeDir)
 
             //Init Config File
-            configFile = getFile(args[2].trim())
+            configFile = getFile(configPath)
 
             //Checking Data..
-            checkMappings(nodeDirFiles, args[0].trim())
+            checkMappings(nodeDirFiles, buildFlavor, configType)
         }
     }
 
-    private fun checkMappings(nodeDirFiles: File?, flavor: String) {
+    private fun checkMappings(nodeDirFiles: File?, flavor: String, configType: String) {
         nodeDirFiles?.let { data ->
             val lists = data.listFiles() //Listing Files in Parameter Path
             if (lists != null && lists.isNotEmpty()) {
-                printWriter.println("----------------------------------")
-                printWriter.println("Build Flavor:: $flavor")
+                printWriter.println("**********************************")
+                printWriter.println("Build Flavor\t:: $flavor")
+                printWriter.println("Config Type\t:: $configType")
 
                 if (lists.size < 2) {
-                    printWriter.println("Node Quantity:: (${lists.size})")
+                    printWriter.println("Node Quantity:: ${lists.size}")
                 } else {
-                    printWriter.println("Node(s) Quantity:: (${lists.size})")
+                    printWriter.println("Node(s) Quantity:: ${lists.size}")
                 }
+                printWriter.println("**********************************")
+                printWriter.println()
 
-                printWriter.println("----------------------------------")
                 for ((index, dirPaths) in lists.withIndex()) {
                     listNodesName?.add(dirPaths)
 
@@ -105,18 +119,31 @@ class ConfigHelper(private val args: Array<String>?) {
                         collect?.let { parentList ->
                             val configPath = parentList[0] //Since it 'listing' and 'filtering' occurs, the path will be in '0' Index
                             val configCollect = getConfigStreamList(configPath)
-                            val mapChildGrouping: MutableMap<String, String> = mutableMapOf() //Init Map to Hold Values
+
+                            if (!listDataProps.isNullOrEmpty()) {
+                                mapChildGrouping = mutableMapOf() //Init Map to Hold Child Values
+                            } else {
+                                mapGrouping = mutableMapOf() //Init Map to Hold Values
+                            }
 
                             configCollect?.let { childList ->
                                 childList.removeAt(0) //Remove Parent Dir
-                                childList.forEachIndexed { _, lastConfigPath ->
+                                childList.forEachIndexed { index, lastConfigPath ->
                                     if (checkConfigDirectory(lastConfigPath)) {
-                                        val getLastDirName = fixPathDirectory(lastConfigPath)
-                                        mappingConfig(getLastDirName, mapChildGrouping, lastConfigPath)
+                                        val getLastDirName = subStringDir(lastConfigPath)
+                                        if (!listDataProps.isNullOrEmpty()) {
+                                            mappingChildConfig(listDataProps, getLastDirName, mapChildGrouping, lastConfigPath)
+                                        } else {
+                                            mappingConfig(index, lastConfigPath, mapGrouping)
+                                        }
                                     }
                                 }
 
-                                mapDataGrouping.put(index, mapChildGrouping) //Inserting The Child Data Looping to Parent Mapping
+                                if (!listDataProps.isNullOrEmpty()) {
+                                    mapChildDataGrouping.put(index, mapChildGrouping) //Inserting The Child Data Looping to Parent Mapping
+                                } else {
+                                    mapDataGrouping.put(index, mapGrouping) //Inserting The Data Looping to Parent Mapping
+                                }
                             }
                         }
                     } catch (e: IOException) {
@@ -124,7 +151,12 @@ class ConfigHelper(private val args: Array<String>?) {
                     }
                 }
 
-                populateData(mapDataGrouping, listNodesName)
+                if (!listDataProps.isNullOrEmpty()) {
+                    populateChildData(mapChildDataGrouping, listNodesName)
+                } else {
+                    populateData(mapDataGrouping, listNodesName)
+
+                }
             } else {
                 println("No Directory Founds in ${this.nodeDirFiles}")
             }
@@ -134,18 +166,38 @@ class ConfigHelper(private val args: Array<String>?) {
         println("Successfully Running the Config Validator!")
     }
 
-    private fun populateData(mapData: MutableMap<Int, MutableMap<String, String>>?, listNodesName: MutableList<File>?) {
-        if (listNodesName != null) {
+    private fun populateData(mapData: MutableMap<Int, MutableMap<Int, String>>?, listNodesName: MutableList<File>?) {
+        listNodesName?.let { nodes ->
+            for ((parentIndex, dirPaths) in nodes.withIndex()) {
+
+                printListNode(listNodesName, parentIndex, dirPaths)
+
+                if (!mapData.isNullOrEmpty()) {
+                    mapData.forEach { (index, data) ->
+                        if (parentIndex == index) {
+                            data.forEach { (key, value) ->
+                                printWriter.println("<-- #${key + 1} Instance -->")
+                                printWriter.println("A) Path :: $value")
+
+                                val filePath: File? = File(value)
+                                printListData(filePath, null)
+                            }
+                        }
+                    }
+                } else {
+                    println("No Data Node Founds")
+                }
+            }
+        }
+    }
+
+    private fun populateChildData(mapData: MutableMap<Int, MutableMap<String, String>>?, listNodesName: MutableList<File>?) {
+        if (!listNodesName.isNullOrEmpty()) {
             println("Data Nodes Found! Populating Data Now...")
             for ((parentIndex, dirPaths) in listNodesName.withIndex()) {
-                printWriter.println()
-                if (listNodesName.size < 2) {
-                    printWriter.println("Node #${parentIndex + 1} :: ${dirPaths.name}")
-                } else {
-                    printWriter.println("Node(s) #${parentIndex + 1} :: ${dirPaths.name}")
-                }
+                printListNode(listNodesName, parentIndex, dirPaths)
 
-                if (mapData != null) {
+                if (!mapData.isNullOrEmpty()) {
                     mapData.forEach { (index, data) ->
                         if (parentIndex == index) {
                             data.forEach { (key, value) ->
@@ -157,7 +209,6 @@ class ConfigHelper(private val args: Array<String>?) {
                             }
                         }
                     }
-                } else {
                 }
             }
         } else {
@@ -180,23 +231,33 @@ class ConfigHelper(private val args: Array<String>?) {
                 .collect(Collectors.toList())
     }
 
-    private fun fixPathDirectory(lastConfigPath: String): String {
+    private fun subStringDir(lastConfigPath: String): String {
         val fixPathDir = lastConfigPath.replace("/", "\\") //Replacing Path ('\') -> ex: from ~> C:/TestPath || to ~> C:\TestPath
         val indexing = fixPathDir.lastIndexOf("\\") //Indexing Path based On '\' -> ex: C\TestPath\Test\Path
         return fixPathDir.substring(indexing + 1) //Getting the Last Dir Name -> ex: from ~> C\TestPath\Test\Path || to ~> Path
     }
 
-    private fun mappingConfig(lastDirName: String, mapChildGrouping: MutableMap<String, String>, lastConfigPath: String) {
-        if (listDataProps != null) {
-            for (value in listDataProps) {
-                if (lastDirName.contains(value)) {
-                    println("Found:: $value in Config Properties --> $lastDirName")
-                    mapChildGrouping[value] = lastConfigPath
-                }
+    private fun mappingChildConfig(listDataProps: MutableList<String>, lastDirName: String, mapChildGrouping: MutableMap<String, String>, lastConfigPath: String) {
+        for (value in listDataProps) {
+            if (lastDirName.contains(value)) {
+                println("Found:: $value in Config Properties --> $lastDirName")
+                mapChildGrouping[value] = lastConfigPath
             }
-        } else {
-            println("No Child/Multiple Value in Properties (Config [.txt])")
         }
+    }
+
+    private fun mappingConfig(index: Int, lastConfigPath: String, mapGrouping: MutableMap<Int, String>) {
+        mapGrouping[index] = lastConfigPath
+    }
+
+    private fun printListNode(listNodesName: MutableList<File>, parentIndex: Int, dirPaths: File) {
+        printWriter.println("----------------------------------")
+        if (listNodesName.size < 2) {
+            printWriter.println("Node #${parentIndex + 1} :: ${dirPaths.name}")
+        } else {
+            printWriter.println("Node(s) #${parentIndex + 1} :: ${dirPaths.name}")
+        }
+        printWriter.println("----------------------------------")
     }
 
     private fun printListData(filePath: File?, key: String?) {
@@ -249,7 +310,7 @@ class ConfigHelper(private val args: Array<String>?) {
                             listExpectedItems.add(lastKeyValue)
                         }
                     } else {
-
+                        listExpectedItems.add(keyValue)
                     }
                 }
             }
@@ -258,7 +319,7 @@ class ConfigHelper(private val args: Array<String>?) {
 
     private fun compareData(listExpectedItems: MutableList<String>?, listActualItems: MutableList<String>?) {
         if (listExpectedItems != null && listActualItems != null) {
-            isEqual(listExpectedItems, listActualItems).also {
+            isContentEquals(listExpectedItems, listActualItems).also {
                 val expectedSize: Int = listExpectedItems.size
                 val actualSize: Int = listActualItems.size
 
@@ -268,7 +329,6 @@ class ConfigHelper(private val args: Array<String>?) {
                     } else {
                         printWriter.println("**PASSED --> $expectedSize Data(s) from Config (.txt) are Successfully Mapped to Selected Directories")
                     }
-                    printWriter.println()
                 } else {
                     if (expectedSize > actualSize) {
                         val differenceSize = expectedSize - actualSize
@@ -293,29 +353,7 @@ class ConfigHelper(private val args: Array<String>?) {
                     printWriter.println("**ACTION --> Please Check the Path/Jenkins Configuration Again for Correction/Validation")
                 }
             }
-        }
-    }
-
-    private fun findPropertiesFiles(lastConfigPath: String) {
-        File(lastConfigPath).also {
-            val lists = it.listFiles() //Listing Files in end of Path (to get .properties files)
-            if (lists != null && lists.isNotEmpty()) {
-                for (file in lists) {
-                    if (file.path.contains("mklik")) {
-                        println("true --> ${file.path}")
-                    }
-                }
-                printWriter.print("B) File\t:: ")
-                if (listActualItems.size < 2) {
-                    printWriter.println("(${listActualItems.size}) Item Found in Directory!") //How many files found
-                } else {
-                    printWriter.println("(${listActualItems.size}) Item(s) Found in Directory!")
-                }
-                printWriter.println("C) List of File\t:: $listActualItems") //Printing the list of file name
-
-                checkConfigStatus(listActualItems) //Go to 'checkConfigStatus' function
-                printWriter.println("----------------------------------------------------")
-            }
+            printWriter.println()
         }
     }
 
@@ -385,7 +423,7 @@ class ConfigHelper(private val args: Array<String>?) {
                     if (keys.contains("/")) {
                         val index = keys.lastIndexOf("/")
                         val firstValue = keys.substring(0, index)
-                        val lastValue = keys.substring(index + 1)
+                        //val lastValue = keys.substring(index + 1)
 
                         if (listDataProps!!.isEmpty()) {
                             listDataProps.add(firstValue)
