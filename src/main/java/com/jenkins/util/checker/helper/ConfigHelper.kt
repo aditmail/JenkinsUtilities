@@ -1,9 +1,9 @@
 package com.jenkins.util.checker.helper
 
+import com.jenkins.util.checker.utils.IConfig
 import com.jenkins.util.checker.utils.checkConfigDirectory
 import com.jenkins.util.checker.utils.getFile
 import com.jenkins.util.checker.utils.isContentEquals
-import com.jenkins.util.checker.utils.isEqual
 import java.io.*
 import java.nio.file.Files
 import java.nio.file.Path
@@ -13,7 +13,7 @@ import java.util.stream.Collectors
 import java.util.stream.Stream
 import kotlin.collections.ArrayList
 
-class ConfigHelper(private val args: Array<String>?) {
+class ConfigHelper(private val args: Array<String>?) : IConfig {
 
     //Data Files
     private var nodeDirFiles: File? = null //Path of Dir Config
@@ -98,17 +98,17 @@ class ConfigHelper(private val args: Array<String>?) {
         nodeDirFiles?.let { data ->
             val lists = data.listFiles() //Listing Files in Parameter Path
             if (lists != null && lists.isNotEmpty()) {
-                printWriter.println("**********************************")
-                printWriter.println("Build Flavor\t:: $flavor")
-                printWriter.println("Config Type\t:: $configType")
+                pwLine("**********************************")
+                pwLine("Build Flavor\t:: $flavor")
+                pwLine("Config Type\t:: $configType")
 
                 if (lists.size < 2) {
-                    printWriter.println("Node Quantity:: ${lists.size}")
+                    pwLine("Node Quantity:: ${lists.size}")
                 } else {
-                    printWriter.println("Node(s) Quantity:: ${lists.size}")
+                    pwLine("Node(s) Quantity:: ${lists.size}")
                 }
-                printWriter.println("**********************************")
-                printWriter.println()
+                pwLine("**********************************")
+                pwLine(null)
 
                 for ((index, dirPaths) in lists.withIndex()) {
                     listNodesName?.add(dirPaths)
@@ -201,8 +201,8 @@ class ConfigHelper(private val args: Array<String>?) {
                     mapData.forEach { (index, data) ->
                         if (parentIndex == index) {
                             data.forEach { (key, value) ->
-                                printWriter.println("Config <=== $key ===>")
-                                printWriter.println("A) Path :: $value")
+                                pwLine("Config <=== $key ===>")
+                                pwLine("A) Path :: $value")
 
                                 val filePath: File? = File(value)
                                 printListData(filePath, key)
@@ -253,11 +253,11 @@ class ConfigHelper(private val args: Array<String>?) {
     private fun printListNode(listNodesName: MutableList<File>, parentIndex: Int, dirPaths: File) {
         printWriter.println("----------------------------------")
         if (listNodesName.size < 2) {
-            printWriter.println("Node #${parentIndex + 1} :: ${dirPaths.name}")
+            pwLine("Node #${parentIndex + 1} :: ${dirPaths.name}")
         } else {
-            printWriter.println("Node(s) #${parentIndex + 1} :: ${dirPaths.name}")
+            pwLine("Node(s) #${parentIndex + 1} :: ${dirPaths.name}")
         }
-        printWriter.println("----------------------------------")
+        pwLine("----------------------------------")
     }
 
     private fun printListData(filePath: File?, key: String?) {
@@ -267,13 +267,13 @@ class ConfigHelper(private val args: Array<String>?) {
 
                 saveActualItems(getItemList)
 
-                printWriter.print("B) File\t:: ")
+                pw("B) File\t:: ")
                 if (listActualItems.size < 2) {
-                    printWriter.println("(${listActualItems.size}) Item Found in Directory!") //How many files found
+                    pwLine("(${listActualItems.size}) Item Found in Directory!") //How many files found
                 } else {
-                    printWriter.println("(${listActualItems.size}) Item(s) Found in Directory!")
+                    pwLine("(${listActualItems.size}) Item(s) Found in Directory!")
                 }
-                printWriter.println("C) List of File\t:: $listActualItems") //Printing the list of file name
+                pwLine("C) List of File\t:: $listActualItems") //Printing the list of file name
 
                 saveExpectedItems(configFile, key)
 
@@ -324,90 +324,46 @@ class ConfigHelper(private val args: Array<String>?) {
                 val actualSize: Int = listActualItems.size
 
                 if (it) {
-                    if (listActualItems.size < 2) {
-                        printWriter.println("**PASSED --> $expectedSize Data from Config (.txt) is Successfully Mapped to Selected Directories")
+                    if (actualSize < 2) {
+                        pwLine("**PASSED --> $expectedSize Data from Config (.txt) is Successfully Mapped to Selected Directories")
                     } else {
-                        printWriter.println("**PASSED --> $expectedSize Data(s) from Config (.txt) are Successfully Mapped to Selected Directories")
+                        pwLine("**PASSED --> $expectedSize Data(s) from Config (.txt) are Successfully Mapped to Selected Directories")
                     }
                 } else {
                     if (expectedSize > actualSize) {
                         val differenceSize = expectedSize - actualSize
                         if (differenceSize < 2) {
-                            printWriter.println("**ERROR --> There's 1 Data from Config (.txt) That is NOT Mapping to Selected Directories")
+                            pwLine("**ERROR --> There's 1 Data from Config (.txt) That is NOT Mapping to Selected Directories")
                         } else {
-                            printWriter.println("**ERROR --> There's $differenceSize Data from Config (.txt) That are NOT Mapping to Selected Directories")
+                            pwLine("**ERROR --> There's $differenceSize Data from Config (.txt) That are NOT Mapping to Selected Directories")
                         }
                     } else {
                         val differenceSize = actualSize - expectedSize
                         if (differenceSize < 2) {
-                            printWriter.println("**ERROR --> There's 1 Data That is NOT Based on the Config (.txt) Mapped to Selected Directories")
+                            pwLine("**ERROR --> There's 1 Data That is NOT Based on the Config (.txt) Mapped to Selected Directories")
                         } else {
-                            printWriter.println("**ERROR --> There's $differenceSize Data That are NOT Based on the Config (.txt) Mapped to Selected Directories")
+                            pwLine("**ERROR --> There's $differenceSize Data That are NOT Based on the Config (.txt) Mapped to Selected Directories")
                         }
                     }
                     if (expectedSize < 2) {
-                        printWriter.println("**EXPECTED --> (1) File in Directory :: $listExpectedItems")
+                        pw("**ERROR --> Expected :: $expectedSize Item Mapped || ")
                     } else {
-                        printWriter.println("**EXPECTED --> (${listExpectedItems.size}) File(s) in Directory :: $listExpectedItems")
+                        pw("**ERROR --> Expected :: $expectedSize Item(s) Mapped || ")
                     }
-                    printWriter.println("**ACTION --> Please Check the Path/Jenkins Configuration Again for Correction/Validation")
+
+                    if (actualSize < 2) {
+                        pwLine("Actual -> $actualSize Item Mapped")
+                    } else {
+                        pwLine("Actual -> $actualSize Item(s) Mapped")
+                    }
+                    pwLine("==============================================================")
+                    pwLine("**EXPECTING --> $listExpectedItems but Found $listActualItems")
+                    pwLine("==============================================================")
+
+                    //printWriter.println("**ACTION --> Please Check the Path/Jenkins Configuration Again for Correction/Validation")
                 }
             }
             printWriter.println()
-        }
-    }
-
-    private fun checkConfigStatus(listActualProps: MutableList<String>) {
-        configFile?.let { config ->
-            val envStream = FileInputStream(config) //Load Config Properties from Params
-            properties.load(envStream) //Load as Properties
-
-            val keyProps = properties.propertyNames() //Getting Key values from Properties
-            while (keyProps.hasMoreElements()) { //Iteration
-                val keys = keyProps.nextElement().toString()
-                if (properties.getProperty(keys) == "true")
-                    listExpectedItems.add(keys) //Adding to List
-            }
-
-            //Comparing the Expected and Actual Properties File that has been Mapping via Jenkins..
-            isEqual(listExpectedItems, listActualProps).also {
-                val expectedSize: Int = listExpectedItems.size
-                val actualSize: Int = listActualProps.size
-
-                if (it) {
-                    if (listActualProps.size < 2) {
-                        printWriter.println("**PASSED --> $expectedSize Data from Config (.txt) is Successfully Mapped to Selected Directories")
-                    } else {
-                        printWriter.println("**PASSED --> $expectedSize Data(s) from Config (.txt) are Successfully Mapped to Selected Directories")
-                    }
-                    printWriter.println()
-                } else {
-                    if (expectedSize > actualSize) {
-                        val differenceSize = expectedSize - actualSize
-                        if (differenceSize < 2) {
-                            printWriter.println("**ERROR --> There's 1 Data from Config (.txt) That is NOT Mapping to Selected Directories")
-                        } else {
-                            printWriter.println("**ERROR --> There's $differenceSize Data from Config (.txt) That are NOT Mapping to Selected Directories")
-                        }
-                    } else {
-                        val differenceSize = actualSize - expectedSize
-                        if (differenceSize < 2) {
-                            printWriter.println("**ERROR --> There's 1 Data That is NOT Based on the Config (.txt) Mapped to Selected Directories")
-                        } else {
-                            printWriter.println("**ERROR --> There's $differenceSize Data That are NOT Based on the Config (.txt) Mapped to Selected Directories")
-                        }
-                    }
-                    if (expectedSize < 2) {
-                        printWriter.println("**EXPECTED --> (1) File in Directory :: $listExpectedItems")
-                    } else {
-                        printWriter.println("**EXPECTED --> (${listExpectedItems.size}) File(s) in Directory :: $listExpectedItems")
-                    }
-                    printWriter.println("**ACTION --> Please Check the Path/Jenkins Configuration Again for Correction/Validation")
-                }
-            }
-
-            listExpectedItems.clear()
-            listActualProps.clear()
         }
     }
 
@@ -436,5 +392,17 @@ class ConfigHelper(private val args: Array<String>?) {
                 }
             }
         }
+    }
+
+    override fun pwLine(value: String?) {
+        if (value == null) {
+            printWriter.println()
+        } else {
+            printWriter.println(value)
+        }
+    }
+
+    override fun pw(value: String) {
+        printWriter.print(value)
     }
 }
