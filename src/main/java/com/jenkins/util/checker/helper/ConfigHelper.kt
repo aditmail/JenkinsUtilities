@@ -12,7 +12,7 @@ import java.nio.file.Paths
 import java.util.*
 import java.util.stream.Collectors
 import java.util.stream.Stream
-import kotlin.collections.ArrayList
+
 
 class ConfigHelper(private val args: Array<String>?) : IConfig {
 
@@ -34,17 +34,12 @@ class ConfigHelper(private val args: Array<String>?) : IConfig {
     private val listErrorPath: MutableList<ErrorSummaries>? = ArrayList()
 
     //Init Parent Map
-    private val listSummaries: MutableMap<File, MutableMap<MutableList<String>, MutableList<String>>> = mutableMapOf()
     private val mapChildDataGrouping: MutableMap<Int, MutableMap<String, String>> = mutableMapOf()
     private val mapDataGrouping: MutableMap<Int, MutableMap<Int, String>> = mutableMapOf()
 
     //Init Child Map
-    private lateinit var mapSummaries: MutableMap<MutableList<String>, MutableList<String>>
     private lateinit var mapChildGrouping: MutableMap<String, String>
     private lateinit var mapGrouping: MutableMap<Int, String>
-
-    //Init ErrorSummary
-    private lateinit var errorSummaries: ErrorSummaries
 
     fun initFiles(flavor: String, configType: String, nodesDirPath: String, configPath: String, destinationPath: String) {
         //Init FileOutput
@@ -167,12 +162,12 @@ class ConfigHelper(private val args: Array<String>?) : IConfig {
             } else {
                 println("No Directory Founds in ${this.nodeDirFiles}")
             }
-        }
 
-        //printWriter.close()
-        errorSummaries(listErrorPath)
-        println("ERR:: $listErrorPath")
-        println("Successfully Running the Config Validator!")
+            errorSummaries(listErrorPath)
+            println("Successfully Running the Config Validator!")
+
+            printWriter.close()
+        }
     }
 
     private fun populateData(mapData: MutableMap<Int, MutableMap<Int, String>>?, listNodesName: MutableList<File>?) {
@@ -185,8 +180,8 @@ class ConfigHelper(private val args: Array<String>?) : IConfig {
                     mapData.forEach { (index, data) ->
                         if (parentIndex == index) {
                             data.forEach { (key, value) ->
-                                printWriter.println("<-- #${key + 1} Instance -->")
-                                printWriter.println("A) Path :: $value")
+                                pwLine("<-- #${key + 1} Instance -->")
+                                pwLine("A) Path :: $value")
 
                                 val filePath: File? = File(value)
                                 printListData(filePath, null)
@@ -291,6 +286,7 @@ class ConfigHelper(private val args: Array<String>?) : IConfig {
             }
         }
 
+        //**Reset the List of Expected and Actual
         listExpectedItems.clear()
         listActualItems.clear()
     }
@@ -339,7 +335,6 @@ class ConfigHelper(private val args: Array<String>?) : IConfig {
                         pwLine("**PASSED --> $expectedSize Data(s) from Config (.txt) are Successfully Mapped to Selected Directories")
                     }
                 } else {
-                    mapSummaries = mutableMapOf()
                     if (expectedSize > actualSize) {
                         val differenceSize = expectedSize - actualSize
                         if (differenceSize < 2) {
@@ -370,11 +365,11 @@ class ConfigHelper(private val args: Array<String>?) : IConfig {
                     pwLine("**EXPECTING --> $listExpectedItems but Found $listActualItems")
                     pwLine("==============================================================")
 
-                    errorSummaries = ErrorSummaries(listFile, listExpectedItems, listActualItems)
+                    val listException = listExpectedItems.toMutableList()
+                    val listActual = listActualItems.toMutableList()
+                    val errorSummaries = ErrorSummaries(listFile, listException, listActual)
+
                     listErrorPath?.add(errorSummaries)
-                    //println(errorSummaries)
-                    println("List: $listErrorPath")
-                    //printWriter.println("**ACTION --> Please Check the Path/Jenkins Configuration Again for Correction/Validation")
                 }
             }
             printWriter.println()
@@ -384,11 +379,13 @@ class ConfigHelper(private val args: Array<String>?) : IConfig {
     private fun errorSummaries(listErrorPath: MutableList<ErrorSummaries>?) {
         listErrorPath?.let {
             if (!it.isNullOrEmpty()) {
-                pwLine(" ===================== ERROR SUMMARIES ===================== ")
+                pwLine("*************** ERROR SUMMARIES ***************")
                 for ((index, dirPaths) in it.withIndex()) {
                     pwLine("Path #$index:: ${dirPaths.errorPath}")
                     pwLine("Expecting ${dirPaths.listExpected} but Found ${dirPaths.listActualItems}")
                 }
+                pwLine("**ACTION --> Please Check the Path/Jenkins Configuration Again for Correction/Validation")
+                pwLine("*************** ERROR SUMMARIES ***************")
             }
         }
     }
