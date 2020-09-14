@@ -24,12 +24,15 @@ class ConfigHelper(private val args: Array<String>?) : IConfig {
     //Init List
     private val listActualItems: MutableList<String> = ArrayList() //List Actual Item Files in Dir
     private val listExpectedItems: MutableList<String> = ArrayList() //List Expected Item Files in Dir
+    private val listChildGrouping: MutableList<MutableMap<String, String>> = ArrayList() //List of mapChildDataGrouping
 
     private val listDataProps: MutableList<String>? = ArrayList()
     private val listNodesName: MutableList<File>? = ArrayList()
     private val listErrorPath: MutableList<ErrorSummaries>? = ArrayList()
 
     //Init Parent Map
+    private val mapChildDataGroupings: MutableMap<Int, MutableList<MutableMap<String, String>>> = mutableMapOf()
+
     private val mapChildDataGrouping: MutableMap<Int, MutableMap<String, String>> = mutableMapOf()
     private val mapDataGrouping: MutableMap<Int, MutableMap<Int, String>> = mutableMapOf()
 
@@ -37,7 +40,7 @@ class ConfigHelper(private val args: Array<String>?) : IConfig {
     private lateinit var mapChildGrouping: MutableMap<String, String>
     private lateinit var mapGrouping: MutableMap<Int, String>
 
-    /*fun initFiles(projectName: String, configType: String, nodesDirPath: String, configPath: String, destinationPath: String) {
+    fun initFiles(projectName: String, configType: String, nodesDirPath: String, configPath: String, destinationPath: String) {
         //Init FileOutput
         fileOutput = File("$destinationPath/outputConfigs_${configType}.txt")
         if (!fileOutput.exists()) {
@@ -59,9 +62,9 @@ class ConfigHelper(private val args: Array<String>?) : IConfig {
 
         //Checking Data..
         checkMappings(nodeDirFiles, projectName, configType)
-    }*/
+    }
 
-    fun initFiles() {
+    /*fun initFiles() {
         if (args?.size == 0 || args?.size != 4) {
             println("Please Input The Parameters That's are Needed")
             println("1st Params --> Project-Name (ex: klikBCAIndividu)")
@@ -92,7 +95,7 @@ class ConfigHelper(private val args: Array<String>?) : IConfig {
             //Checking Data..
             checkMappings(nodeDirFiles, projectName, configType)
         }
-    }
+    }*/
 
     private fun checkMappings(nodeDirFiles: File?, projectName: String, configType: String) {
         nodeDirFiles?.let { data ->
@@ -120,9 +123,13 @@ class ConfigHelper(private val args: Array<String>?) : IConfig {
                             val configPath = parentList[0] //Since it 'listing' and 'filtering' occurs, the path will be in '0' Index
                             val configCollect = getConfigStreamList(configPath)
 
-                            if (!listDataProps.isNullOrEmpty()) {
+                            /*if (!listDataProps.isNullOrEmpty()) {
                                 mapChildGrouping = mutableMapOf() //Init Map to Hold Child Values
                             } else {
+                                mapGrouping = mutableMapOf() //Init Map to Hold Values
+                            }*/
+
+                            if (listDataProps.isNullOrEmpty()) {
                                 mapGrouping = mutableMapOf() //Init Map to Hold Values
                             }
 
@@ -132,7 +139,10 @@ class ConfigHelper(private val args: Array<String>?) : IConfig {
                                     if (checkConfigDirectory(lastConfigPath)) {
                                         val getLastDirName = subStringDir(lastConfigPath)
                                         if (!listDataProps.isNullOrEmpty()) {
-                                            mappingChildConfig(listDataProps, getLastDirName, mapChildGrouping, lastConfigPath)
+                                            mappingChildConfig(listDataProps, getLastDirName, lastConfigPath)
+
+                                            //Testing
+                                            //listChildGrouping.add(mapChildGrouping)
                                         } else {
                                             mappingConfig(index, lastConfigPath, mapGrouping)
                                         }
@@ -140,6 +150,15 @@ class ConfigHelper(private val args: Array<String>?) : IConfig {
                                 }
 
                                 if (!listDataProps.isNullOrEmpty()) {
+                                    if (index == 0) {
+                                        println("Index 1 --> $listChildGrouping")
+                                    }
+
+                                    val listChildPath = listChildGrouping.toMutableList()
+                                    mapChildDataGroupings[index] = listChildPath //Testing
+
+                                    listChildGrouping.clear()
+
                                     mapChildDataGrouping.put(index, mapChildGrouping) //Inserting The Child Data Looping to Parent Mapping
                                 } else {
                                     mapDataGrouping.put(index, mapGrouping) //Inserting The Data Looping to Parent Mapping
@@ -152,7 +171,10 @@ class ConfigHelper(private val args: Array<String>?) : IConfig {
                 }
 
                 if (!listDataProps.isNullOrEmpty()) {
-                    populateChildData(mapChildDataGrouping, listNodesName)
+                    populateChildDataTest(mapChildDataGroupings, listNodesName)
+
+
+                    //populateChildData(mapChildDataGrouping, listNodesName)
                 } else {
                     populateData(mapDataGrouping, listNodesName)
 
@@ -165,6 +187,35 @@ class ConfigHelper(private val args: Array<String>?) : IConfig {
             println("Successfully Running the Config Validator!")
 
             printWriter.close()
+        }
+    }
+
+    private fun populateChildDataTest(mapChildDataGroupings: MutableMap<Int, MutableList<MutableMap<String, String>>>, listNodesName: MutableList<File>?) {
+        if (!listNodesName.isNullOrEmpty()) {
+            println("Data Nodes Found! Populating Data Now...")
+            for ((parentIndex, dirPaths) in listNodesName.withIndex()) {
+                printListNode(listNodesName, parentIndex, dirPaths)
+
+                //println("Map Datas Final --> $mapData")
+
+                if (!mapChildDataGroupings.isNullOrEmpty()) {
+                    mapChildDataGroupings.forEach { (index, data) ->
+                        if (parentIndex == index) {
+                            for ((childIndex, listData) in data.withIndex()) {
+                                listData.forEach { (key, value) ->
+                                    pwLine("#$childIndex) Config <=== $key ===>")
+                                    pwLine("A) Path :: $value")
+
+                                    val filePath: File? = File(value)
+                                    printListData(filePath, key)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            println("No Data Node Founds")
         }
     }
 
@@ -198,6 +249,8 @@ class ConfigHelper(private val args: Array<String>?) : IConfig {
             println("Data Nodes Found! Populating Data Now...")
             for ((parentIndex, dirPaths) in listNodesName.withIndex()) {
                 printListNode(listNodesName, parentIndex, dirPaths)
+
+                //println("Map Datas Final --> $mapData")
 
                 if (!mapData.isNullOrEmpty()) {
                     mapData.forEach { (index, data) ->
@@ -239,24 +292,41 @@ class ConfigHelper(private val args: Array<String>?) : IConfig {
         return fixPathDir.substring(indexing + 1) //Getting the Last Dir Name -> ex: from ~> C\TestPath\Test\Path || to ~> Path
     }
 
-    private fun mappingChildConfig(listDataProps: MutableList<String>, lastDirName: String, mapChildGrouping: MutableMap<String, String>, lastConfigPath: String) {
+    /** Sorting Process..
+     * if ListDataProps value are contains in the path looping
+     * Then insert it into mapChildGrouping
+     * ex: ListDataProps => [mklik, ibank]
+     * if path -> '../mklik_bca_inter1' contains words in 'mklik' => insert to machildGrouping as 'key: mklik' && 'value: ../mklik_bca_inter1'
+     * */
+    private fun mappingChildConfig(listDataProps: MutableList<String>, lastDirName: String, lastConfigPath: String) {
         for (value in listDataProps) {
+
             if (lastDirName.contains(value)) {
-                println("Found:: $value in Config Properties --> $lastDirName")
+                println("'$lastDirName' Contains $value [TRUE][MAPPED to '$value'] (V)")
+
+                mapChildGrouping = mutableMapOf()
                 mapChildGrouping[value] = lastConfigPath
+                listChildGrouping.add(mapChildGrouping)
+
+                /*    val data: MutableMap<String, String> = mutableMapOf()
+                    data[value] = lastConfigPath
+
+                    listChildGrouping.add(data)*/
             } else {
+                println("'$lastDirName' Contains $value [FALSE][NOT MAPPED to '$value'] (X)")
                 val checker = checkerValue(value)
+
                 if (checker != null) {
-                    println("Checker:: $checker")
+                    println("Try to Find Another Methods")
+                    println("is $lastDirName Contains $checker?")
+
                     if (lastConfigPath.contains(checker)) {
                         mapChildGrouping[value] = lastConfigPath
-                        println("--> $value || $lastConfigPath")
+
+                        listChildGrouping.add(mapChildGrouping)
+                        println("$lastConfigPath Contains $checker [TRUE][MAPPED to $value]")
                     }
-                } else {
-                    println("Data Not Found!")
                 }
-                //if notif_1 ~= EMAILLISTENER XXX
-                //
             }
         }
     }
