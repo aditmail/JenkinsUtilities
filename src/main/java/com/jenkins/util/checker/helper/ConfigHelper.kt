@@ -37,7 +37,7 @@ class ConfigHelper(private val args: Array<String>?) : IConfig {
     private lateinit var mapChildGrouping: MutableMap<String, String>
     private lateinit var mapGrouping: MutableMap<Int, String>
 
-    fun initFiles(flavor: String, configType: String, nodesDirPath: String, configPath: String, destinationPath: String) {
+    /*fun initFiles(projectName: String, configType: String, nodesDirPath: String, configPath: String, destinationPath: String) {
         //Init FileOutput
         fileOutput = File("$destinationPath/outputConfigs_${configType}.txt")
         if (!fileOutput.exists()) {
@@ -58,18 +58,18 @@ class ConfigHelper(private val args: Array<String>?) : IConfig {
         populateProperties()
 
         //Checking Data..
-        checkMappings(nodeDirFiles, flavor, configType)
-    }
+        checkMappings(nodeDirFiles, projectName, configType)
+    }*/
 
-    /*fun initFiles() {
+    fun initFiles() {
         if (args?.size == 0 || args?.size != 4) {
             println("Please Input The Parameters That's are Needed")
-            println("1st Params --> Build_Flavor")
-            println("2nd Params --> Config_Type")
-            println("3rd Params --> Nodes_Dir_Path")
-            println("4th Params --> Config_Path")
+            println("1st Params --> Project-Name (ex: klikBCAIndividu)")
+            println("2nd Params --> Config-Type (ex: Pilot-APP)")
+            println("3rd Params --> Nodes-Dir-Path (ex: ../KBI/PILOT/CONFIG/APP")
+            println("4th Params --> Config_Path (ex: ..KBI/var/changes-config-app.txt")
         } else {
-            val buildFlavor = args[0].trim()
+            val projectName = args[0].trim()
             val configType = args[1].trim()
             val nodeDir = args[2].trim()
             val configPath = args[3].trim()
@@ -90,17 +90,17 @@ class ConfigHelper(private val args: Array<String>?) : IConfig {
             populateProperties()
 
             //Checking Data..
-            checkMappings(nodeDirFiles, buildFlavor, configType)
+            checkMappings(nodeDirFiles, projectName, configType)
         }
-    }*/
+    }
 
-    private fun checkMappings(nodeDirFiles: File?, flavor: String, configType: String) {
+    private fun checkMappings(nodeDirFiles: File?, projectName: String, configType: String) {
         nodeDirFiles?.let { data ->
             val lists = data.listFiles() //Listing Files in Parameter Path
             if (lists != null && lists.isNotEmpty()) {
                 pwLine("**********************************")
-                pwLine("Build Flavor\t:: $flavor")
-                pwLine("Config Type\t:: $configType")
+                pwLine("Project Name\t:: $projectName")
+                pwLine("Flavor-Type\t:: $configType")
 
                 if (lists.size < 2) {
                     pwLine("Node Quantity:: ${lists.size}")
