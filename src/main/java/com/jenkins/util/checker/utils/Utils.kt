@@ -40,6 +40,7 @@ fun checkerValue(value: String): String? {
         "IBConsumerRespRegistration" -> "regis"
         "IBAdministrationService" -> "adm"
         "IBUserService" -> "usr"
+        "IBTransferService" -> "trf"
         else -> null
     }
     return setValue
