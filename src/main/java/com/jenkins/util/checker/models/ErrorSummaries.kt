@@ -8,6 +8,10 @@ data class ErrorSummaries(
         var listActualItems: MutableList<String>?
 )
 
+data class ListChildGrouping(
+        var listMap: MutableList<MutableMap<String,String>>?
+)
+
 data class ChildGrouping(
         val mapChildGrouping: MutableMap<String, String>
 )
