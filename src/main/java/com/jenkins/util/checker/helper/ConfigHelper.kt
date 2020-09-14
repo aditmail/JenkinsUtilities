@@ -118,8 +118,64 @@ class ConfigHelper(private val args: Array<String>?) : IConfig {
                     try {
                         val collect = getParentStreamList(startParentPathing)
                         collect?.let { parentList ->
+                            for (configList in parentList) {
+                                val configCollect = getConfigStreamList(configList)
+                                if (listDataProps.isNullOrEmpty()) {
+                                    mapGrouping = mutableMapOf() //Init Map to Hold Values
+                                }
+
+                                configCollect?.let { childList ->
+                                    childList.removeAt(0) //Remove Parent Dir
+                                    childList.forEachIndexed { index, lastConfigPath ->
+                                        if (checkConfigDirectory(lastConfigPath)) {
+                                            val getLastDirName = subStringDir(lastConfigPath)
+                                            if (!listDataProps.isNullOrEmpty()) {
+                                                mappingChildConfig(listDataProps, getLastDirName, lastConfigPath)
+                                            } else {
+                                                mappingConfig(index, lastConfigPath, mapGrouping)
+                                            }
+                                        }
+                                    }
+
+                                    /*if (!listDataProps.isNullOrEmpty()) {
+                                        println("ListChild:: $listChildGrouping")
+
+                                        val listChildPath = listChildGrouping.toMutableList()
+
+                                        //Inserting The Child Data Looping to Parent Mapping
+                                        mapChildDataGroupings[index] = listChildPath
+
+                                        println("MapChild:: $mapChildDataGroupings")
+
+                                        //Reset the List Value to use for another loop
+                                        listChildGrouping.clear()
+                                    } else {
+                                        //Inserting The Data Looping to Parent Mapping
+                                        mapDataGrouping.put(index, mapGrouping)
+                                    }*/
+                                }
+                            }
+
+                            if (!listDataProps.isNullOrEmpty()) {
+                                val listChildPath = listChildGrouping.toMutableList()
+
+                                //Inserting The Child Data Looping to Parent Mapping
+                                mapChildDataGroupings[index] = listChildPath
+
+                                //Reset the List Value to use for another loop
+                                listChildGrouping.clear()
+                            } else {
+                                //Inserting The Data Looping to Parent Mapping
+                                mapDataGrouping.put(index, mapGrouping)
+                            }
+                        }
+
+                        /*collect?.let { parentList ->
                             val configPath = parentList[0] //Since it 'listing' and 'filtering' occurs, the path will be in '0' Index
                             val configCollect = getConfigStreamList(configPath)
+
+                            println("ConfigPath:: $configPath")
+                            println("ConfigCollect:: $configCollect")
 
                             if (listDataProps.isNullOrEmpty()) {
                                 mapGrouping = mutableMapOf() //Init Map to Hold Values
@@ -151,7 +207,7 @@ class ConfigHelper(private val args: Array<String>?) : IConfig {
                                     mapDataGrouping.put(index, mapGrouping)
                                 }
                             }
-                        }
+                        }*/
                     } catch (e: IOException) {
                         println("Err:: ${e.message.toString()}")
                     }
@@ -161,8 +217,8 @@ class ConfigHelper(private val args: Array<String>?) : IConfig {
                     populateChildData(mapChildDataGroupings, listNodesName)
                 } else {
                     populateData(mapDataGrouping, listNodesName)
-
                 }
+
             } else {
                 println("No Directory Founds in ${this.nodeDirFiles}")
             }
@@ -184,7 +240,7 @@ class ConfigHelper(private val args: Array<String>?) : IConfig {
                 if (!mapChildDataGroupings.isNullOrEmpty()) {
                     mapChildDataGroupings.forEach { (index, data) ->
                         if (parentIndex == index) {
-                            var numbers = 0
+                            var numbers = 1
                             var keyNames: String? = null
 
                             if (data.size < 2) {
@@ -196,14 +252,17 @@ class ConfigHelper(private val args: Array<String>?) : IConfig {
 
                             for (listData in data) {
                                 listData.forEach { (key, value) ->
-                                    if (keyNames == null) {
-                                        keyNames = key
-                                    }
-
-                                    if (keyNames != key) {
-                                        numbers = 1; keyNames = null
-                                    } else {
-                                        numbers++
+                                    when {
+                                        keyNames == null -> {
+                                            keyNames = key
+                                        }
+                                        keyNames != key -> {
+                                            numbers = 1
+                                            keyNames = null
+                                        }
+                                        else -> {
+                                            numbers++
+                                        }
                                     }
 
                                     pwLine("[$numbers] Config <=== $key ===>")
@@ -282,17 +341,19 @@ class ConfigHelper(private val args: Array<String>?) : IConfig {
                 listChildGrouping.add(mapChildGrouping)
             } else {
                 //println("'$lastDirName' Contains $value [FALSE][NOT MAPPED to '$value'] (X)")
-                val checker = checkerValue(value)
 
+                val checker = checkerValue(value)
                 if (checker != null) {
                     println("Try to Find Another Methods")
-                    print("is $lastDirName Contains $checker?")
+                    print("is $lastDirName Contains $checker? ")
 
-                    if (lastConfigPath.contains(checker)) {
-                        println("[TRUE][MAPPED to $value]")
+                    if (lastDirName.contains(checker)) {
+                        println("[TRUE][MAPPED to $value] (V)")
 
                         mapChildGrouping = mutableMapOf(value to lastConfigPath)
                         listChildGrouping.add(mapChildGrouping)
+                    } else {
+                        println("[FALSE][NOT MAPPED to '$value'] (X)")
                     }
                 }
             }
