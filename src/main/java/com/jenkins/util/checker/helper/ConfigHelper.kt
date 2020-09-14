@@ -1,10 +1,7 @@
 package com.jenkins.util.checker.helper
 
 import com.jenkins.util.checker.models.ErrorSummaries
-import com.jenkins.util.checker.utils.IConfig
-import com.jenkins.util.checker.utils.checkConfigDirectory
-import com.jenkins.util.checker.utils.getFile
-import com.jenkins.util.checker.utils.isContentEquals
+import com.jenkins.util.checker.utils.*
 import java.io.*
 import java.nio.file.Files
 import java.nio.file.Path
@@ -12,7 +9,6 @@ import java.nio.file.Paths
 import java.util.*
 import java.util.stream.Collectors
 import java.util.stream.Stream
-
 
 class ConfigHelper(private val args: Array<String>?) : IConfig {
 
@@ -43,7 +39,7 @@ class ConfigHelper(private val args: Array<String>?) : IConfig {
 
     fun initFiles(flavor: String, configType: String, nodesDirPath: String, configPath: String, destinationPath: String) {
         //Init FileOutput
-        fileOutput = File("$destinationPath/outputConfig_${configType}.txt")
+        fileOutput = File("$destinationPath/outputConfigs_${configType}.txt")
         if (!fileOutput.exists()) {
             fileOutput.createNewFile()
             println("Creating File:: $fileOutput")
@@ -65,8 +61,8 @@ class ConfigHelper(private val args: Array<String>?) : IConfig {
         checkMappings(nodeDirFiles, flavor, configType)
     }
 
-    fun initFiles() {
-        if (args?.size == 0 || args?.size != 3) {
+    /*fun initFiles() {
+        if (args?.size == 0 || args?.size != 4) {
             println("Please Input The Parameters That's are Needed")
             println("1st Params --> Build_Flavor")
             println("2nd Params --> Config_Type")
@@ -91,10 +87,12 @@ class ConfigHelper(private val args: Array<String>?) : IConfig {
             //Init Config File
             configFile = getFile(configPath)
 
+            populateProperties()
+
             //Checking Data..
             checkMappings(nodeDirFiles, buildFlavor, configType)
         }
-    }
+    }*/
 
     private fun checkMappings(nodeDirFiles: File?, flavor: String, configType: String) {
         nodeDirFiles?.let { data ->
@@ -246,6 +244,19 @@ class ConfigHelper(private val args: Array<String>?) : IConfig {
             if (lastDirName.contains(value)) {
                 println("Found:: $value in Config Properties --> $lastDirName")
                 mapChildGrouping[value] = lastConfigPath
+            } else {
+                val checker = checkerValue(value)
+                if (checker != null) {
+                    println("Checker:: $checker")
+                    if (lastConfigPath.contains(checker)) {
+                        mapChildGrouping[value] = lastConfigPath
+                        println("--> $value || $lastConfigPath")
+                    }
+                } else {
+                    println("Data Not Found!")
+                }
+                //if notif_1 ~= EMAILLISTENER XXX
+                //
             }
         }
     }
@@ -381,8 +392,14 @@ class ConfigHelper(private val args: Array<String>?) : IConfig {
             if (!it.isNullOrEmpty()) {
                 pwLine("*************** ERROR SUMMARIES ***************")
                 for ((index, dirPaths) in it.withIndex()) {
-                    pwLine("Path #$index:: ${dirPaths.errorPath}")
-                    pwLine("Expecting ${dirPaths.listExpected} but Found ${dirPaths.listActualItems}")
+                    if (it.size < 2) {
+                        pwLine("<-- #${index + 1} Error -->")
+                    } else {
+                        pwLine("<-- #${index + 1} Error(s) -->")
+                    }
+                    pwLine("-> Path :: ${dirPaths.errorPath}")
+                    pwLine("-> EXPECTED :: ${dirPaths.listExpected} || FOUND :: ${dirPaths.listActualItems}")
+                    pwLine(null)
                 }
                 pwLine("**ACTION --> Please Check the Path/Jenkins Configuration Again for Correction/Validation")
                 pwLine("*************** ERROR SUMMARIES ***************")

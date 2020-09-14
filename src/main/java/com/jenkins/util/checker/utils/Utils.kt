@@ -31,3 +31,16 @@ fun getFile(filename: String): File? {
 fun checkConfigDirectory(value: String): Boolean {
     return value.contains("/") || value.contains("\\")
 }
+
+fun checkerValue(value: String): String? {
+    var setValue: String? = null
+    setValue = when (value) {
+        "EmailListener" -> "notif"
+        "IBConsumerRespApproval" -> "apprv"
+        "IBConsumerRespRegistration" -> "regis"
+        "IBAdministrationService" -> "adm"
+        "IBUserService" -> "usr"
+        else -> null
+    }
+    return setValue
+}

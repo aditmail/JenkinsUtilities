@@ -8,7 +8,7 @@ public class ConfigValidator {
         System.out.println("Running Configs Validator!");
         ConfigHelper helper = new ConfigHelper(args);
 
-        helper.initFiles();
+        //helper.initFiles();
 
         helper.initFiles(
                 "PILOT",
