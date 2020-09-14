@@ -140,9 +140,6 @@ class ConfigHelper(private val args: Array<String>?) : IConfig {
                                         val getLastDirName = subStringDir(lastConfigPath)
                                         if (!listDataProps.isNullOrEmpty()) {
                                             mappingChildConfig(listDataProps, getLastDirName, lastConfigPath)
-
-                                            //Testing
-                                            //listChildGrouping.add(mapChildGrouping)
                                         } else {
                                             mappingConfig(index, lastConfigPath, mapGrouping)
                                         }
@@ -150,16 +147,10 @@ class ConfigHelper(private val args: Array<String>?) : IConfig {
                                 }
 
                                 if (!listDataProps.isNullOrEmpty()) {
-                                    if (index == 0) {
-                                        println("Index 1 --> $listChildGrouping")
-                                    }
-
                                     val listChildPath = listChildGrouping.toMutableList()
-                                    mapChildDataGroupings[index] = listChildPath //Testing
+                                    mapChildDataGroupings[index] = listChildPath //Inserting The Child Data Looping to Parent Mapping
 
-                                    listChildGrouping.clear()
-
-                                    mapChildDataGrouping.put(index, mapChildGrouping) //Inserting The Child Data Looping to Parent Mapping
+                                    listChildGrouping.clear() //Reset the List Value to use for another loop
                                 } else {
                                     mapDataGrouping.put(index, mapGrouping) //Inserting The Data Looping to Parent Mapping
                                 }
@@ -194,16 +185,29 @@ class ConfigHelper(private val args: Array<String>?) : IConfig {
         if (!listNodesName.isNullOrEmpty()) {
             println("Data Nodes Found! Populating Data Now...")
             for ((parentIndex, dirPaths) in listNodesName.withIndex()) {
-                printListNode(listNodesName, parentIndex, dirPaths)
 
-                //println("Map Datas Final --> $mapData")
+                printListNode(listNodesName, parentIndex, dirPaths)
 
                 if (!mapChildDataGroupings.isNullOrEmpty()) {
                     mapChildDataGroupings.forEach { (index, data) ->
                         if (parentIndex == index) {
-                            for ((childIndex, listData) in data.withIndex()) {
+                            var numbers = 0
+                            var keyNames: String? = null
+
+                            for (listData in data) {
                                 listData.forEach { (key, value) ->
-                                    pwLine("#$childIndex) Config <=== $key ===>")
+
+                                    if (keyNames == null) {
+                                        keyNames = key
+                                    }
+
+                                    if (keyNames != key) {
+                                        numbers = 1; keyNames = null
+                                    } else {
+                                        numbers++
+                                    }
+
+                                    pwLine("[$numbers] Config <=== $key ===>")
                                     pwLine("A) Path :: $value")
 
                                     val filePath: File? = File(value)
@@ -244,33 +248,6 @@ class ConfigHelper(private val args: Array<String>?) : IConfig {
         }
     }
 
-    private fun populateChildData(mapData: MutableMap<Int, MutableMap<String, String>>?, listNodesName: MutableList<File>?) {
-        if (!listNodesName.isNullOrEmpty()) {
-            println("Data Nodes Found! Populating Data Now...")
-            for ((parentIndex, dirPaths) in listNodesName.withIndex()) {
-                printListNode(listNodesName, parentIndex, dirPaths)
-
-                //println("Map Datas Final --> $mapData")
-
-                if (!mapData.isNullOrEmpty()) {
-                    mapData.forEach { (index, data) ->
-                        if (parentIndex == index) {
-                            data.forEach { (key, value) ->
-                                pwLine("Config <=== $key ===>")
-                                pwLine("A) Path :: $value")
-
-                                val filePath: File? = File(value)
-                                printListData(filePath, key)
-                            }
-                        }
-                    }
-                }
-            }
-        } else {
-            println("No Data Node Founds")
-        }
-    }
-
     private fun getParentStreamList(startParentPathing: Path): List<String>? {
         val parentStream: Stream<Path> = Files.walk(startParentPathing, Int.MAX_VALUE) //Discovering the parentPath with Max value to its Last Subfolder
         return parentStream.map(java.lang.String::valueOf)
@@ -302,18 +279,12 @@ class ConfigHelper(private val args: Array<String>?) : IConfig {
         for (value in listDataProps) {
 
             if (lastDirName.contains(value)) {
-                println("'$lastDirName' Contains $value [TRUE][MAPPED to '$value'] (V)")
-
+                println("'$lastDirName' Contains $value ? [TRUE][MAPPED to '$value'] (V)")
                 mapChildGrouping = mutableMapOf()
                 mapChildGrouping[value] = lastConfigPath
                 listChildGrouping.add(mapChildGrouping)
-
-                /*    val data: MutableMap<String, String> = mutableMapOf()
-                    data[value] = lastConfigPath
-
-                    listChildGrouping.add(data)*/
             } else {
-                println("'$lastDirName' Contains $value [FALSE][NOT MAPPED to '$value'] (X)")
+                //println("'$lastDirName' Contains $value [FALSE][NOT MAPPED to '$value'] (X)")
                 val checker = checkerValue(value)
 
                 if (checker != null) {
