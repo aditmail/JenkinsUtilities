@@ -13,7 +13,7 @@ public class ConfigValidator {
         /*helper.initFiles(
                 "klikBCAIndividu",
                 "INTER-WEB",
-                "C:/Users/Adit/Documents/CI-CD/jenkins/JenkinsNode_Example/workspace/TestKBI_Services/null/TestKBI_Services/PILOT/CONFIG/SVC",
+                "C:/Users/Adit/Documents/CI-CD/jenkins/JenkinsNode_Example/workspace/TestKBI_Services/null/TestKBI_Services/INTER/CONFIG/SVC",
                 //"C:/WORK_BCA/generate local config/BUILD_APP_INTER_KBI/CONFIG/APP",
                 "C:/Users/Adit/Documents/CI-CD/jenkins/JenkinsNode_Example/workspace/TestKBI_Services/null/TestKBI_Services/var/changes-config-app.txt",
                 "C:/Users/Adit/Documents/CI-CD/jenkins/JenkinsNode_Example/workspace/TestKBI_Services/null/TestKBI_Services/var");*/

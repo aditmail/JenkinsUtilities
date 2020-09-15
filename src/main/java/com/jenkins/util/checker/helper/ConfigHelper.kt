@@ -10,6 +10,7 @@ import java.util.*
 import java.util.stream.Collectors
 import java.util.stream.Stream
 
+
 class ConfigHelper(private val args: Array<String>?) : IConfig {
 
     //Data Files
@@ -512,7 +513,25 @@ class ConfigHelper(private val args: Array<String>?) : IConfig {
             val envStream = FileInputStream(config) //Load Config Properties from Params
             properties.load(envStream) //Load as Properties
 
-            val keyProps = properties.propertyNames() //Getting Key values from Properties
+            for (keys in properties.stringPropertyNames()) {
+                if (properties.getProperty(keys) == "true") {
+                    if (keys.contains("/")) {
+                        val index = keys.lastIndexOf("/")
+                        val firstValue = keys.substring(0, index)
+                        //val lastValue = keys.substring(index + 1)
+
+                        if (listDataProps!!.isEmpty()) {
+                            listDataProps.add(firstValue)
+                        } else {
+                            if (!listDataProps.contains(firstValue)) {
+                                listDataProps.add(firstValue)
+                            }
+                        }
+                    }
+                }
+            }
+
+            /*val keyProps = properties.propertyNames() //Getting Key values from Properties
             while (keyProps.hasMoreElements()) { //Iteration
                 val keys = keyProps.nextElement().toString()
                 if (properties.getProperty(keys) == "true") {
@@ -530,7 +549,7 @@ class ConfigHelper(private val args: Array<String>?) : IConfig {
                         }
                     }
                 }
-            }
+            }*/
         }
     }
 
