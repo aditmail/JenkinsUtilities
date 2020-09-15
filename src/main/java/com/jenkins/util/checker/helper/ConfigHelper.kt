@@ -18,12 +18,14 @@ class ConfigHelper(private val args: Array<String>?) : IConfig {
     private lateinit var fileOutput: File //Path + Filename of Output Config Validator
 
     //Init Helper
+    private lateinit var projectName: String
+
     private lateinit var printWriter: PrintWriter
     private val properties = Properties()
 
     //Init List
-    private val listActualItems: MutableList<String> = ArrayList() //List Actual Item Files in Dir
-    private val listExpectedItems: MutableList<String> = ArrayList() //List Expected Item Files in Dir
+    private val listActualItems: MutableList<String> = ArrayList()
+    private val listExpectedItems: MutableList<String> = ArrayList()
     private val listChildGrouping: MutableList<MutableMap<String, String>> = ArrayList() //List of mapChildDataGrouping
 
     private val listDataProps: MutableList<String>? = ArrayList()
@@ -39,6 +41,8 @@ class ConfigHelper(private val args: Array<String>?) : IConfig {
     private lateinit var mapGrouping: MutableMap<Int, String>
 
     /*fun initFiles(projectName: String, configType: String, nodesDirPath: String, configPath: String, destinationPath: String) {
+        this.projectName = projectName
+
         //Init FileOutput
         fileOutput = File("$destinationPath/outputConfigs_${configType}.txt")
         if (!fileOutput.exists()) {
@@ -70,7 +74,7 @@ class ConfigHelper(private val args: Array<String>?) : IConfig {
             println("3rd Params --> Nodes-Dir-Path (ex: ../KBI/PILOT/CONFIG/APP")
             println("4th Params --> Config_Path (ex: ..KBI/var/changes-config-app.txt")
         } else {
-            val projectName = args[0].trim()
+            projectName = args[0].trim()
             val configType = args[1].trim()
             val nodeDir = args[2].trim()
             val configPath = args[3].trim()
@@ -321,8 +325,8 @@ class ConfigHelper(private val args: Array<String>?) : IConfig {
     }
 
     private fun subStringDir(lastConfigPath: String): String {
-        val fixPathDir = lastConfigPath.replace("/", "\\") //Replacing Path ('\') -> ex: from ~> C:/TestPath || to ~> C:\TestPath
-        val indexing = fixPathDir.lastIndexOf("\\") //Indexing Path based On '\' -> ex: C\TestPath\Test\Path
+        val fixPathDir = lastConfigPath.replace("/", "\\")
+        val indexing = fixPathDir.lastIndexOf("\\")
         return fixPathDir.substring(indexing + 1) //Getting the Last Dir Name -> ex: from ~> C\TestPath\Test\Path || to ~> Path
     }
 
@@ -334,26 +338,23 @@ class ConfigHelper(private val args: Array<String>?) : IConfig {
      * */
     private fun mappingChildConfig(listDataProps: MutableList<String>, lastDirName: String, lastConfigPath: String) {
         for (value in listDataProps) {
-
             if (lastDirName.contains(value)) {
                 println("'$lastDirName' Contains $value ? [TRUE][MAPPED to '$value'] (V)")
                 mapChildGrouping = mutableMapOf(value to lastConfigPath)
                 listChildGrouping.add(mapChildGrouping)
             } else {
-                //println("'$lastDirName' Contains $value [FALSE][NOT MAPPED to '$value'] (X)")
+                val checkerTest = valueChecker(projectName, value)
+                if (checkerTest != null) {
+                    print("is $lastDirName Contains $checkerTest? ")
+                    for (data in checkerTest) {
+                        if (lastDirName.contains(data)) {
+                            println("[TRUE][MAPPED to $value] (V)")
 
-                val checker = checkerValue(value)
-                if (checker != null) {
-                    println("Try to Find Another Methods")
-                    print("is $lastDirName Contains $checker? ")
-
-                    if (lastDirName.contains(checker)) {
-                        println("[TRUE][MAPPED to $value] (V)")
-
-                        mapChildGrouping = mutableMapOf(value to lastConfigPath)
-                        listChildGrouping.add(mapChildGrouping)
-                    } else {
-                        println("[FALSE][NOT MAPPED to '$value'] (X)")
+                            mapChildGrouping = mutableMapOf(value to lastConfigPath)
+                            listChildGrouping.add(mapChildGrouping)
+                        } else {
+                            println("[FALSE][NOT MAPPED to '$value'] (X)")
+                        }
                     }
                 }
             }

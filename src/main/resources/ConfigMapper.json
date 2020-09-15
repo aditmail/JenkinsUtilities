@@ -1,0 +1,45 @@
+{
+  "mapper": [
+    {
+      "project_name": "klikBCAIndividu",
+      "dir_name": [
+        {
+          "last_dir_name": "EmailListener",
+          "dir_path_name": [
+            "notif"
+          ]
+        },
+        {
+          "last_dir_name": "IBConsumerRespApproval",
+          "dir_path_name": [
+            "apprv"
+          ]
+        },
+        {
+          "last_dir_name": "IBConsumerRespRegistration",
+          "dir_path_name": [
+            "regis"
+          ]
+        },
+        {
+          "last_dir_name": "IBUserService",
+          "dir_path_name": [
+            "usr"
+          ]
+        },
+        {
+          "last_dir_name": "IBTransferService",
+          "dir_path_name": [
+            "trf"
+          ]
+        },
+        {
+          "last_dir_name": "IBAdministrationService",
+          "dir_path_name": [
+            "adm"
+          ]
+        }
+      ]
+    }
+  ]
+}
