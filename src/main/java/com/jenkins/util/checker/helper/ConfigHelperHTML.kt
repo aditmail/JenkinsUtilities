@@ -113,19 +113,21 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig {
                                         text-align: left;
                                         vertical-align: middle;
                                         padding: 8px;
+                                        border-radius: 4px;
                                     }
                                     
                                     div{
-                                        padding: 8px;
-                                        display:inline-block
+                                        padding: 16px;
+                                        display:inline-block;
+                                        border-radius: 8px;
                                     }
                                     
                                     div.pj{
-                                        background-color: #ffe6cc
+                                        background-color: #ffe6cc;
                                     }
                                     
                                     div.content{
-                                        background-color: #f2f2f2
+                                        background-color: #f2f2f2;
                                     }
                                     
                                     th.center{
@@ -318,18 +320,28 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig {
     private fun populateData(mapData: MutableMap<Int, MutableMap<Int, String>>?, listNodesName: MutableList<File>?) {
         listNodesName?.let { nodes ->
             for ((parentIndex, dirPaths) in nodes.withIndex()) {
-
                 printListNode(listNodesName, parentIndex, dirPaths)
+                pwLine(null)
+
                 if (!mapData.isNullOrEmpty()) {
                     mapData.forEach { (index, data) ->
                         if (parentIndex == index) {
                             data.forEach { (key, value) ->
-                                pwLine("<-- #${key + 1} Instance -->")
-                                pwLine("A) Path :: $value")
+                                pwLine("<p> &#8656; &#8251;${key + 1} Instance &#8658;</p>")
 
+                                pwLine("<table border=\"1\" bordercolor=\"#000000\">")
+                                val lastIndexOf = value.lastIndexOf("\\")
+                                pwLine("""<tr>
+                                                <td style="font-size:20px;">&#10102;</td>
+                                                <th><b>Path Name</b></th>
+                                                <td>
+                                                    <a href="$value" target="_blank">${value.substring(lastIndexOf + 1)}</a>
+                                                </td>
+                                            </tr>""".trimIndent())
                                 val filePath: File? = File(value)
                                 printListData(filePath, null)
                             }
+                            pwLine("</div>")
                         }
                     }
                 } else {
