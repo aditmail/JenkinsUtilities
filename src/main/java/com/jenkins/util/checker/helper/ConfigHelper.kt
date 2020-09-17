@@ -11,7 +11,7 @@ import java.util.stream.Collectors
 import java.util.stream.Stream
 
 
-class ConfigHelper(private val args: Array<String>?) : IConfig {
+class ConfigHelper(private val args: Array<String>?) : IConfig.PrintWriter {
 
     //Data Files
     private var nodeDirFiles: File? = null //Path of Dir Config
