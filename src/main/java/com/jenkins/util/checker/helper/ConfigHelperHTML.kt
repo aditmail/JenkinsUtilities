@@ -3,9 +3,11 @@ package com.jenkins.util.checker.helper
 import com.jenkins.util.checker.models.ErrorSummaries
 import com.jenkins.util.checker.utils.*
 import java.io.*
+import java.math.RoundingMode
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
+import java.text.DecimalFormat
 import java.util.*
 import java.util.stream.Collectors
 import java.util.stream.Stream
@@ -41,7 +43,12 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
     private lateinit var mapChildGrouping: MutableMap<String, String>
     private lateinit var mapGrouping: MutableMap<Int, String>
 
-    /*fun initFiles(projectName: String, configType: String, nodesDirPath: String, configPath: String, destinationPath: String) {
+    //Init Counter
+    private var totalConfigData = 0
+    private var passedConfigData = 0
+    private var failedConfigData = 0
+
+    fun initFiles(projectName: String, configType: String, nodesDirPath: String, configPath: String, destinationPath: String) {
         this.projectName = projectName
 
         //Init FileOutput
@@ -65,9 +72,9 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
 
         //Checking Data..
         checkMappings(nodeDirFiles, projectName, configType)
-    }*/
+    }
 
-    fun initFiles() {
+    /*fun initFiles() {
         if (args?.size == 0 || args?.size != 4) {
             println("Please Input The Parameters That's are Needed")
             println("1st Params --> Project-Name (ex: klikBCAIndividu)")
@@ -98,7 +105,7 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
             //Checking Data..
             checkMappings(nodeDirFiles, projectName, configType)
         }
-    }
+    }*/
 
     private fun checkMappings(nodeDirFiles: File?, projectName: String, configType: String) {
         nodeDirFiles?.let { data ->
@@ -164,6 +171,8 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
                 println("No Directory Founds in ${this.nodeDirFiles}")
             }
 
+            summaryPercentage(totalConfigData, passedConfigData, failedConfigData)
+
             errorSummaries(listErrorPath)
             println("Successfully Running the Config Validator!")
 
@@ -171,15 +180,57 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
             stbAppendStyle("html-close", null)
 
             writeToFile(stringBuilder.toString(), fileOutput)
-            println("Creating Report File!")
+            println("Creating Report File Successful!")
         }
     }
 
-    private fun writeToFile(fileContent: String, fileOutput: File) {
-        val outputStream = FileOutputStream(fileOutput.absoluteFile)
-        val writer = OutputStreamWriter(outputStream)
-        writer.write(fileContent)
-        writer.close()
+    private fun getParentStreamList(startParentPathing: Path): List<String>? {
+        val parentStream: Stream<Path> = Files.walk(startParentPathing, Int.MAX_VALUE) //Discovering the parentPath with Max value to its Last Subfolder
+        return parentStream.map(java.lang.String::valueOf)
+                .filter { it.endsWith("config") } //Filtering to get 'config' directory Only
+                .sorted()
+                .collect(Collectors.toList())
+    }
+
+    private fun getConfigStreamList(configPath: String): MutableList<String>? {
+        val configStream: Stream<Path> = Files.walk(Paths.get(configPath), 1) //Discovering the configPath with Min value, jumping to Instance dir
+        return configStream.map(java.lang.String::valueOf)
+                .sorted()
+                .collect(Collectors.toList())
+    }
+
+    /** Sorting Process..
+     * if ListDataProps value are contains in the path looping
+     * Then insert it into mapChildGrouping
+     * ex: ListDataProps => [mklik, ibank]
+     * if path -> '../mklik_bca_inter1' contains words in 'mklik' => insert to machildGrouping as 'key: mklik' && 'value: ../mklik_bca_inter1'
+     * */
+    private fun mappingChildConfig(listDataProps: MutableList<String>, lastDirName: String, lastConfigPath: String) {
+        for (value in listDataProps) {
+            if (lastDirName.contains(value)) {
+                println("'$lastDirName' Contains $value ? [TRUE][MAPPED to '$value'] (V)")
+                mapChildGrouping = mutableMapOf(value to lastConfigPath)
+
+                listChildGrouping.add(mapChildGrouping)
+            } else {
+                val checkerTest = valueChecker(projectName, value)
+                if (checkerTest != null) {
+                    print("is $lastDirName Contains $checkerTest? ")
+                    for (data in checkerTest) {
+                        if (lastDirName.contains(data)) {
+                            println("[TRUE][MAPPED to $value] (V)")
+
+                            mapChildGrouping = mutableMapOf(value to lastConfigPath)
+                            listChildGrouping.add(mapChildGrouping)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun mappingConfig(index: Int, lastConfigPath: String, mapGrouping: MutableMap<Int, String>) {
+        mapGrouping[index] = lastConfigPath
     }
 
     private fun populateChildData(mapChildDataGroupings: MutableMap<Int, MutableList<MutableMap<String, String>>>, listNodesName: MutableList<File>?) {
@@ -280,59 +331,10 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
         }
     }
 
-    private fun getParentStreamList(startParentPathing: Path): List<String>? {
-        val parentStream: Stream<Path> = Files.walk(startParentPathing, Int.MAX_VALUE) //Discovering the parentPath with Max value to its Last Subfolder
-        return parentStream.map(java.lang.String::valueOf)
-                .filter { it.endsWith("config") } //Filtering to get 'config' directory Only
-                .sorted()
-                .collect(Collectors.toList())
-    }
-
-    private fun getConfigStreamList(configPath: String): MutableList<String>? {
-        val configStream: Stream<Path> = Files.walk(Paths.get(configPath), 1) //Discovering the configPath with Min value, jumping to Instance dir
-        return configStream.map(java.lang.String::valueOf)
-                .sorted()
-                .collect(Collectors.toList())
-    }
-
     private fun subStringDir(lastConfigPath: String): String {
         val fixPathDir = lastConfigPath.replace("/", "\\")
         val indexing = fixPathDir.lastIndexOf("\\")
         return fixPathDir.substring(indexing + 1) //Getting the Last Dir Name -> ex: from ~> C\TestPath\Test\Path || to ~> Path
-    }
-
-    /** Sorting Process..
-     * if ListDataProps value are contains in the path looping
-     * Then insert it into mapChildGrouping
-     * ex: ListDataProps => [mklik, ibank]
-     * if path -> '../mklik_bca_inter1' contains words in 'mklik' => insert to machildGrouping as 'key: mklik' && 'value: ../mklik_bca_inter1'
-     * */
-    private fun mappingChildConfig(listDataProps: MutableList<String>, lastDirName: String, lastConfigPath: String) {
-        for (value in listDataProps) {
-            if (lastDirName.contains(value)) {
-                println("'$lastDirName' Contains $value ? [TRUE][MAPPED to '$value'] (V)")
-                mapChildGrouping = mutableMapOf(value to lastConfigPath)
-
-                listChildGrouping.add(mapChildGrouping)
-            } else {
-                val checkerTest = valueChecker(projectName, value)
-                if (checkerTest != null) {
-                    print("is $lastDirName Contains $checkerTest? ")
-                    for (data in checkerTest) {
-                        if (lastDirName.contains(data)) {
-                            println("[TRUE][MAPPED to $value] (V)")
-
-                            mapChildGrouping = mutableMapOf(value to lastConfigPath)
-                            listChildGrouping.add(mapChildGrouping)
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private fun mappingConfig(index: Int, lastConfigPath: String, mapGrouping: MutableMap<Int, String>) {
-        mapGrouping[index] = lastConfigPath
     }
 
     private fun printListNode(listNodesName: MutableList<File>, parentIndex: Int, dirPaths: File) {
@@ -406,10 +408,14 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
     private fun compareData(listFile: File?, listExpectedItems: MutableList<String>?, listActualItems: MutableList<String>?) {
         if (listExpectedItems != null && listActualItems != null) {
             isContentEquals(listExpectedItems, listActualItems).also {
+                totalConfigData += 1 //Count How Many Files Are Compared
+
                 val expectedSize: Int = listExpectedItems.size
                 val actualSize: Int = listActualItems.size
 
                 if (it) {
+                    passedConfigData += 1 //If Passed, Add Counter
+
                     val statusTableData = mutableListOf<Any>("&#10105;", "<p class=\"tableData\">Status</p>", "<p class=\"passed\">PASSED</p>")
                     stbAppendTableData(null, statusTableData)
                     stbAppendStyle("table-close", null)
@@ -420,6 +426,8 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
                         stbAppendStyle("p", "&#8258;<u>NOTES</u>:: <b>$expectedSize Data(s)</b> from Config (.txt) are <b>Successfully Mapped</b> to Selected Directories &#9989;")
                     }
                 } else {
+                    failedConfigData += 1 //If Failed Add Counter
+
                     val statusTableData = mutableListOf<Any>("&#10105;", "<p class=\"tableData\">Status</p>", "<p class=\"failed\">FAILED</p>")
                     stbAppendTableData(null, statusTableData)
                     stbAppendStyle("table-close", null)
@@ -467,9 +475,7 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
     private fun errorSummaries(listErrorPath: MutableList<ErrorSummaries>?) {
         listErrorPath?.let {
             if (!it.isNullOrEmpty()) {
-                stbAppend("<hr>")
-                stbAppendStyle("div-open", "pj")
-                stbAppendStyle("h4", "*************** ERROR SUMMARIES ***************")
+                stbAppendStyle("h4", "ERROR LIST")
 
                 stbAppendStyle("table-open", null)
                 val nameTableHeader = mutableListOf<Any>("No.", "Error Path Name", "Expected &#9989;", "Found &#10060;")
@@ -485,10 +491,47 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
 
                 stbAppendStyle("table-close", null)
                 stbAppendStyle("p", "&#8258;<b>ACTION</b> &#8658; Please <b>Check the Path/Jenkins Configuration</b> Again for Correction/Validation")
-                stbAppendStyle("h4", "*************** ERROR SUMMARIES ***************")
+                stbAppendStyle("h4", "*************** REPORT SUMMARIES ***************")
+
                 stbAppendStyle("div-close", null)
             }
         }
+    }
+
+    private fun summaryPercentage(totalValue: Int, passedValue: Int, failedValue: Int) {
+        if (totalValue != 0) {
+            val decFormat = DecimalFormat("#.##")
+            decFormat.roundingMode = RoundingMode.CEILING
+
+            val successPercentage = (passedValue / totalValue.toDouble()) * 100f
+            val failedPercentage = (failedValue / totalValue.toDouble()) * 100f
+
+            stbAppend("<hr>")
+            stbAppendStyle("div-open", "pj")
+            stbAppendStyle("h4", "*************** REPORT SUMMARIES ***************")
+            stbAppendStyle("p", "&#8258;<b>Total Data</b> &#8658; $totalValue")
+            stbAppendStyle("p", "&#8258;<b style=\"color:green\">Total Passed Data</b> &#8658; $passedValue")
+            stbAppendStyle("p", "&#8258;<b style=\"color:red\">Total Failed Data</b> &#8658; $failedValue")
+
+            stbAppendStyle("table-open", null)
+            val nameTableHeader = mutableListOf<Any>("Passed &#9989;", "Failed &#10060;")
+            stbAppendTableHeader(null, nameTableHeader)
+
+            val successful = decFormat.format(successPercentage)
+            val failed = decFormat.format(failedPercentage)
+            val summaryTableData = mutableListOf<Any>("<p class=\"percentage\">$successful%</p>", "<p class=\"percentage\">$failed%</p>")
+            stbAppendTableData("center", summaryTableData)
+            stbAppendStyle("table-close", null)
+
+            stbAppend(null)
+        }
+    }
+
+    private fun writeToFile(fileContent: String, fileOutput: File) {
+        val outputStream = FileOutputStream(fileOutput.absoluteFile)
+        val writer = OutputStreamWriter(outputStream)
+        writer.write(fileContent)
+        writer.close()
     }
 
     private fun populateProperties() {
@@ -584,6 +627,11 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
                                 p{
                                     margin-top: 4px;    
                                     margin-bottom: 4px;
+                                }
+                                
+                                p.percentage{
+                                    font-weight: bold;
+                                    font-size: 24px;
                                 }
                                 
                                 p.passed{

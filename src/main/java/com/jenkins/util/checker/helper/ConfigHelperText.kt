@@ -3,9 +3,11 @@ package com.jenkins.util.checker.helper
 import com.jenkins.util.checker.models.ErrorSummaries
 import com.jenkins.util.checker.utils.*
 import java.io.*
+import java.math.RoundingMode
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
+import java.text.DecimalFormat
 import java.util.*
 import java.util.stream.Collectors
 import java.util.stream.Stream
@@ -41,7 +43,12 @@ class ConfigHelperText(private val args: Array<String>?) : IConfig.PrintWriter {
     private lateinit var mapChildGrouping: MutableMap<String, String>
     private lateinit var mapGrouping: MutableMap<Int, String>
 
-    /*fun initFiles(projectName: String, configType: String, nodesDirPath: String, configPath: String, destinationPath: String) {
+    //Init Counter
+    private var totalConfigData = 0
+    private var passedConfigData = 0
+    private var failedConfigData = 0
+
+    fun initFiles(projectName: String, configType: String, nodesDirPath: String, configPath: String, destinationPath: String) {
         this.projectName = projectName
 
         //Init FileOutput
@@ -65,7 +72,7 @@ class ConfigHelperText(private val args: Array<String>?) : IConfig.PrintWriter {
 
         //Checking Data..
         checkMappings(nodeDirFiles, projectName, configType)
-    }*/
+    }
 
     fun initFiles() {
         if (args?.size == 0 || args?.size != 4) {
@@ -141,23 +148,6 @@ class ConfigHelperText(private val args: Array<String>?) : IConfig.PrintWriter {
                                             }
                                         }
                                     }
-
-                                    /*if (!listDataProps.isNullOrEmpty()) {
-                                        println("ListChild:: $listChildGrouping")
-
-                                        val listChildPath = listChildGrouping.toMutableList()
-
-                                        //Inserting The Child Data Looping to Parent Mapping
-                                        mapChildDataGroupings[index] = listChildPath
-
-                                        println("MapChild:: $mapChildDataGroupings")
-
-                                        //Reset the List Value to use for another loop
-                                        listChildGrouping.clear()
-                                    } else {
-                                        //Inserting The Data Looping to Parent Mapping
-                                        mapDataGrouping.put(index, mapGrouping)
-                                    }*/
                                 }
                             }
 
@@ -174,45 +164,6 @@ class ConfigHelperText(private val args: Array<String>?) : IConfig.PrintWriter {
                                 mapDataGrouping.put(index, mapGrouping)
                             }
                         }
-
-                        /*collect?.let { parentList ->
-                            val configPath = parentList[0] //Since it 'listing' and 'filtering' occurs, the path will be in '0' Index
-                            val configCollect = getConfigStreamList(configPath)
-
-                            println("ConfigPath:: $configPath")
-                            println("ConfigCollect:: $configCollect")
-
-                            if (listDataProps.isNullOrEmpty()) {
-                                mapGrouping = mutableMapOf() //Init Map to Hold Values
-                            }
-
-                            configCollect?.let { childList ->
-                                childList.removeAt(0) //Remove Parent Dir
-                                childList.forEachIndexed { index, lastConfigPath ->
-                                    if (checkConfigDirectory(lastConfigPath)) {
-                                        val getLastDirName = subStringDir(lastConfigPath)
-                                        if (!listDataProps.isNullOrEmpty()) {
-                                            mappingChildConfig(listDataProps, getLastDirName, lastConfigPath)
-                                        } else {
-                                            mappingConfig(index, lastConfigPath, mapGrouping)
-                                        }
-                                    }
-                                }
-
-                                if (!listDataProps.isNullOrEmpty()) {
-                                    val listChildPath = listChildGrouping.toMutableList()
-
-                                    //Inserting The Child Data Looping to Parent Mapping
-                                    mapChildDataGroupings[index] = listChildPath
-
-                                    //Reset the List Value to use for another loop
-                                    listChildGrouping.clear()
-                                } else {
-                                    //Inserting The Data Looping to Parent Mapping
-                                    mapDataGrouping.put(index, mapGrouping)
-                                }
-                            }
-                        }*/
                     } catch (e: IOException) {
                         println("Err:: ${e.message.toString()}")
                     }
@@ -228,11 +179,63 @@ class ConfigHelperText(private val args: Array<String>?) : IConfig.PrintWriter {
                 println("No Directory Founds in ${this.nodeDirFiles}")
             }
 
+            summaryPercentage(totalConfigData, passedConfigData, failedConfigData)
+
             errorSummaries(listErrorPath)
             println("Successfully Running the Config Validator!")
 
             printWriter.close()
         }
+    }
+
+    private fun getParentStreamList(startParentPathing: Path): List<String>? {
+        val parentStream: Stream<Path> = Files.walk(startParentPathing, Int.MAX_VALUE) //Discovering the parentPath with Max value to its Last Subfolder
+        return parentStream.map(java.lang.String::valueOf)
+                .filter { it.endsWith("config") } //Filtering to get 'config' directory Only
+                .sorted()
+                .collect(Collectors.toList())
+    }
+
+    private fun getConfigStreamList(configPath: String): MutableList<String>? {
+        val configStream: Stream<Path> = Files.walk(Paths.get(configPath), 1) //Discovering the configPath with Min value, jumping to Instance dir
+        return configStream.map(java.lang.String::valueOf)
+                .sorted()
+                .collect(Collectors.toList())
+    }
+
+    /** Sorting Process..
+     * if ListDataProps value are contains in the path looping
+     * Then insert it into mapChildGrouping
+     * ex: ListDataProps => [mklik, ibank]
+     * if path -> '../mklik_bca_inter1' contains words in 'mklik' => insert to machildGrouping as 'key: mklik' && 'value: ../mklik_bca_inter1'
+     * */
+    private fun mappingChildConfig(listDataProps: MutableList<String>, lastDirName: String, lastConfigPath: String) {
+        for (value in listDataProps) {
+            if (lastDirName.contains(value)) {
+                println("'$lastDirName' Contains $value ? [TRUE][MAPPED to '$value'] (V)")
+                mapChildGrouping = mutableMapOf(value to lastConfigPath)
+                listChildGrouping.add(mapChildGrouping)
+            } else {
+                val checkerTest = valueChecker(projectName, value)
+                if (checkerTest != null) {
+                    print("is $lastDirName Contains $checkerTest? ")
+                    for (data in checkerTest) {
+                        if (lastDirName.contains(data)) {
+                            println("[TRUE][MAPPED to $value] (V)")
+
+                            mapChildGrouping = mutableMapOf(value to lastConfigPath)
+                            listChildGrouping.add(mapChildGrouping)
+                        } else {
+                            println("[FALSE][NOT MAPPED to '$value'] (X)")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun mappingConfig(index: Int, lastConfigPath: String, mapGrouping: MutableMap<Int, String>) {
+        mapGrouping[index] = lastConfigPath
     }
 
     private fun populateChildData(mapChildDataGroupings: MutableMap<Int, MutableList<MutableMap<String, String>>>, listNodesName: MutableList<File>?) {
@@ -310,60 +313,10 @@ class ConfigHelperText(private val args: Array<String>?) : IConfig.PrintWriter {
         }
     }
 
-    private fun getParentStreamList(startParentPathing: Path): List<String>? {
-        val parentStream: Stream<Path> = Files.walk(startParentPathing, Int.MAX_VALUE) //Discovering the parentPath with Max value to its Last Subfolder
-        return parentStream.map(java.lang.String::valueOf)
-                .filter { it.endsWith("config") } //Filtering to get 'config' directory Only
-                .sorted()
-                .collect(Collectors.toList())
-    }
-
-    private fun getConfigStreamList(configPath: String): MutableList<String>? {
-        val configStream: Stream<Path> = Files.walk(Paths.get(configPath), 1) //Discovering the configPath with Min value, jumping to Instance dir
-        return configStream.map(java.lang.String::valueOf)
-                .sorted()
-                .collect(Collectors.toList())
-    }
-
     private fun subStringDir(lastConfigPath: String): String {
         val fixPathDir = lastConfigPath.replace("/", "\\")
         val indexing = fixPathDir.lastIndexOf("\\")
         return fixPathDir.substring(indexing + 1) //Getting the Last Dir Name -> ex: from ~> C\TestPath\Test\Path || to ~> Path
-    }
-
-    /** Sorting Process..
-     * if ListDataProps value are contains in the path looping
-     * Then insert it into mapChildGrouping
-     * ex: ListDataProps => [mklik, ibank]
-     * if path -> '../mklik_bca_inter1' contains words in 'mklik' => insert to machildGrouping as 'key: mklik' && 'value: ../mklik_bca_inter1'
-     * */
-    private fun mappingChildConfig(listDataProps: MutableList<String>, lastDirName: String, lastConfigPath: String) {
-        for (value in listDataProps) {
-            if (lastDirName.contains(value)) {
-                println("'$lastDirName' Contains $value ? [TRUE][MAPPED to '$value'] (V)")
-                mapChildGrouping = mutableMapOf(value to lastConfigPath)
-                listChildGrouping.add(mapChildGrouping)
-            } else {
-                val checkerTest = valueChecker(projectName, value)
-                if (checkerTest != null) {
-                    print("is $lastDirName Contains $checkerTest? ")
-                    for (data in checkerTest) {
-                        if (lastDirName.contains(data)) {
-                            println("[TRUE][MAPPED to $value] (V)")
-
-                            mapChildGrouping = mutableMapOf(value to lastConfigPath)
-                            listChildGrouping.add(mapChildGrouping)
-                        } else {
-                            println("[FALSE][NOT MAPPED to '$value'] (X)")
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private fun mappingConfig(index: Int, lastConfigPath: String, mapGrouping: MutableMap<Int, String>) {
-        mapGrouping[index] = lastConfigPath
     }
 
     private fun printListNode(listNodesName: MutableList<File>, parentIndex: Int, dirPaths: File) {
@@ -437,16 +390,22 @@ class ConfigHelperText(private val args: Array<String>?) : IConfig.PrintWriter {
     private fun compareData(listFile: File?, listExpectedItems: MutableList<String>?, listActualItems: MutableList<String>?) {
         if (listExpectedItems != null && listActualItems != null) {
             isContentEquals(listExpectedItems, listActualItems).also {
+                totalConfigData += 1 //Count How Many Files Are Compared
+
                 val expectedSize: Int = listExpectedItems.size
                 val actualSize: Int = listActualItems.size
 
                 if (it) {
+                    passedConfigData += 1 //If Passed, Add Counter
+
                     if (actualSize < 2) {
                         pwLine("**PASSED --> $expectedSize Data from Config (.txt) is Successfully Mapped to Selected Directories")
                     } else {
                         pwLine("**PASSED --> $expectedSize Data(s) from Config (.txt) are Successfully Mapped to Selected Directories")
                     }
                 } else {
+                    failedConfigData += 1 //If Failed Add Counter
+
                     if (expectedSize > actualSize) {
                         val differenceSize = expectedSize - actualSize
                         if (differenceSize < 2) {
@@ -488,10 +447,35 @@ class ConfigHelperText(private val args: Array<String>?) : IConfig.PrintWriter {
         }
     }
 
+    private fun summaryPercentage(totalValue: Int, passedValue: Int, failedValue: Int) {
+        if (totalValue != 0) {
+            pwLine("*************** REPORT SUMMARIES ***************")
+
+            val decFormat = DecimalFormat("#.##")
+            decFormat.roundingMode = RoundingMode.CEILING
+
+            val successPercentage = (passedValue / totalValue.toDouble()) * 100f
+            val failedPercentage = (failedValue / totalValue.toDouble()) * 100f
+            val successful = decFormat.format(successPercentage)
+            val failed = decFormat.format(failedPercentage)
+
+            pwLine("***Total Data:: $totalValue")
+            pwLine("***Total Passed Data:: $passedValue")
+            pwLine("***Total Failed Data:: $failedValue")
+
+            pwLine("-----------------------------------------")
+            pwLine("TOTAL PERCENTAGE")
+            pwLine("SUCCESS ---> $successful%")
+            pwLine("FAILED ---> $failed%")
+            pwLine("-----------------------------------------")
+        }
+    }
+
     private fun errorSummaries(listErrorPath: MutableList<ErrorSummaries>?) {
         listErrorPath?.let {
             if (!it.isNullOrEmpty()) {
-                pwLine("*************** ERROR SUMMARIES ***************")
+                pwLine(null)
+                pwLine("ERROR LIST")
                 for ((index, dirPaths) in it.withIndex()) {
                     if (it.size < 2) {
                         pwLine("<-- #${index + 1} Error -->")
@@ -503,7 +487,7 @@ class ConfigHelperText(private val args: Array<String>?) : IConfig.PrintWriter {
                     pwLine(null)
                 }
                 pwLine("**ACTION --> Please Check the Path/Jenkins Configuration Again for Correction/Validation")
-                pwLine("*************** ERROR SUMMARIES ***************")
+                pwLine("*************** REPORT SUMMARIES ***************")
             }
         }
     }
@@ -530,26 +514,6 @@ class ConfigHelperText(private val args: Array<String>?) : IConfig.PrintWriter {
                     }
                 }
             }
-
-            /*val keyProps = properties.propertyNames() //Getting Key values from Properties
-            while (keyProps.hasMoreElements()) { //Iteration
-                val keys = keyProps.nextElement().toString()
-                if (properties.getProperty(keys) == "true") {
-                    if (keys.contains("/")) {
-                        val index = keys.lastIndexOf("/")
-                        val firstValue = keys.substring(0, index)
-                        //val lastValue = keys.substring(index + 1)
-
-                        if (listDataProps!!.isEmpty()) {
-                            listDataProps.add(firstValue)
-                        } else {
-                            if (!listDataProps.contains(firstValue)) {
-                                listDataProps.add(firstValue)
-                            }
-                        }
-                    }
-                }
-            }*/
         }
     }
 
