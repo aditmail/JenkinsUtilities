@@ -41,7 +41,7 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
     private lateinit var mapChildGrouping: MutableMap<String, String>
     private lateinit var mapGrouping: MutableMap<Int, String>
 
-    fun initFiles(projectName: String, configType: String, nodesDirPath: String, configPath: String, destinationPath: String) {
+    /*fun initFiles(projectName: String, configType: String, nodesDirPath: String, configPath: String, destinationPath: String) {
         this.projectName = projectName
 
         //Init FileOutput
@@ -65,9 +65,9 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
 
         //Checking Data..
         checkMappings(nodeDirFiles, projectName, configType)
-    }
+    }*/
 
-    /*fun initFiles() {
+    fun initFiles() {
         if (args?.size == 0 || args?.size != 4) {
             println("Please Input The Parameters That's are Needed")
             println("1st Params --> Project-Name (ex: klikBCAIndividu)")
@@ -98,7 +98,7 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
             //Checking Data..
             checkMappings(nodeDirFiles, projectName, configType)
         }
-    }*/
+    }
 
     private fun checkMappings(nodeDirFiles: File?, projectName: String, configType: String) {
         nodeDirFiles?.let { data ->
