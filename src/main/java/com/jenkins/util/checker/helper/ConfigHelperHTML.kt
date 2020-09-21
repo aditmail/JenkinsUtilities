@@ -2,6 +2,7 @@ package com.jenkins.util.checker.helper
 
 import com.jenkins.util.checker.models.ErrorSummaries
 import com.jenkins.util.checker.utils.*
+import org.apache.commons.io.FileUtils
 import java.io.*
 import java.math.RoundingMode
 import java.nio.file.Files
@@ -25,10 +26,13 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
 
     private lateinit var stringBuilder: StringBuilder
     private val properties = Properties()
+    private val checkSumHelper = CheckSumHelper()
 
     //Init List
     private val listActualItems: MutableList<String> = ArrayList()
     private val listExpectedItems: MutableList<String> = ArrayList()
+    private val listActualFiles: MutableList<File> = ArrayList()
+
     private val listChildGrouping: MutableList<MutableMap<String, String>> = ArrayList() //List of mapChildDataGrouping
 
     private val listDataProps: MutableList<String>? = ArrayList()
@@ -238,7 +242,7 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
             println("Data Nodes Found! Populating Data Now...")
 
             for ((parentIndex, dirPaths) in listNodesName.withIndex()) {
-                printListNode(listNodesName, parentIndex, dirPaths)
+                printListNode(parentIndex, dirPaths)
 
                 if (!mapChildDataGroupings.isNullOrEmpty()) {
                     mapChildDataGroupings.forEach { (index, data) ->
@@ -247,17 +251,9 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
                             var keyNames: String? = null
 
                             if (data.size < 2) {
-                                stbAppendStyle("h4",
-                                        """${data.size} Directory Found 
-|                                           <br>
-|                                           **********************************
-|                                           """.trimMargin())
+                                stbAppendStyle("h4", String.format(strDirFoundsHTML, data.size, "Directory"))
                             } else {
-                                stbAppendStyle("h4",
-                                        """${data.size} Directories Found 
-|                                           <br>
-|                                           **********************************
-|                                           """.trimMargin())
+                                stbAppendStyle("h4", String.format(strDirFoundsHTML, data.size, "Directories"))
                             }
 
                             for (listData in data) {
@@ -275,13 +271,14 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
                                         }
                                     }
 
-                                    stbAppendStyle("p", "&#8251; $numbers <u>Config</u> &#8658; <b>$key</b>")
+                                    //Add DIV
+                                    stbAppendStyle("div-open", "pj")
+                                    stbAppendStyle("p", String.format(strConfigNameHTML, numbers, key))
 
                                     stbAppendStyle("table-open", null)
-
                                     val lastIndexOf = value.lastIndexOf("\\")
                                     val pathLink = "<a href=\"$value\" target=\"_blank\">${value.substring(lastIndexOf + 1)}</a>"
-                                    val pathTableData = mutableListOf<Any>("&#10102;", "<p class=\"tableData\">Path Name</p>", pathLink)
+                                    val pathTableData = mutableListOf<Any>("<p class=\"tableData\">$strPathName</p>", pathLink)
                                     stbAppendTableData(null, pathTableData)
 
                                     val filePath: File? = File(value)
@@ -302,20 +299,28 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
     private fun populateData(mapData: MutableMap<Int, MutableMap<Int, String>>?, listNodesName: MutableList<File>?) {
         listNodesName?.let { nodes ->
             for ((parentIndex, dirPaths) in nodes.withIndex()) {
-                printListNode(listNodesName, parentIndex, dirPaths)
-                stbAppend(null)
+                printListNode(parentIndex, dirPaths)
 
                 if (!mapData.isNullOrEmpty()) {
                     mapData.forEach { (index, data) ->
                         if (parentIndex == index) {
+                            if (data.size < 2) {
+                                stbAppendStyle("h4", String.format(strDirFoundsHTML, data.size, "Instance"))
+                            } else {
+                                stbAppendStyle("h4", String.format(strDirFoundsHTML, data.size, "Instance(s)"))
+                            }
+
                             data.forEach { (key, value) ->
-                                stbAppendStyle("p", "<b>&#8656; &#8251;${key + 1} Instance &#8658;</b>")
+                                //Add DIV
+                                stbAppendStyle("div-open", "pj")
+
+                                stbAppendStyle("p", String.format(strInstanceNameHTML, key + 1))
                                 stbAppendStyle("table-open", null)
 
                                 val lastIndexOf = value.lastIndexOf("\\")
                                 val pathLink = "<a href=\"$value\" target=\"_blank\">${value.substring(lastIndexOf + 1)}</a>"
 
-                                val pathTableData = mutableListOf<Any>("&#10102;", "Path Name", pathLink)
+                                val pathTableData = mutableListOf<Any>("<p class=\"tableData\">$strPathName</p>", pathLink)
                                 stbAppendTableData(null, pathTableData)
 
                                 val filePath: File? = File(value)
@@ -337,15 +342,15 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
         return fixPathDir.substring(indexing + 1) //Getting the Last Dir Name -> ex: from ~> C\TestPath\Test\Path || to ~> Path
     }
 
-    private fun printListNode(listNodesName: MutableList<File>, parentIndex: Int, dirPaths: File) {
+    private fun printListNode(parentIndex: Int, dirPaths: File) {
         stbAppend("<hr>")
         stbAppendStyle("div-open", "content")
 
         stbAppendStyle("table-open", null)
-        val nameTableHeader = mutableListOf<Any>("Node No.", "Node Name")
+        val nameTableHeader = mutableListOf<Any>(strNodeNo, strNodeName)
         stbAppendTableHeader(null, nameTableHeader)
 
-        val nodeNameTableData = mutableListOf<Any>((parentIndex + 1), dirPaths.name)
+        val nodeNameTableData = mutableListOf<Any>((parentIndex + 1), "<mark><b>${dirPaths.name}</b></mark>")
         stbAppendTableData("center", nodeNameTableData)
         stbAppendStyle("table-close", null)
     }
@@ -355,12 +360,6 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
             val getItemList = filePath.listFiles()
             if (getItemList != null && getItemList.isNotEmpty()) {
                 saveActualItems(getItemList)
-
-                val itemFoundTableData = mutableListOf<Any>("&#10103;", "<p class=\"tableData\">Item Found</p>", "<p class=\"tableData\">${listActualItems.size}</p>")
-                stbAppendTableData(null, itemFoundTableData)
-
-                val listItemTableData = mutableListOf<Any>("&#10104;", "<p class=\"tableData\">List Items</p>", "<p class=\"listData\">$listActualItems</p>")
-                stbAppendTableData(null, listItemTableData)
 
                 saveExpectedItems(configFile, key)
 
@@ -372,11 +371,17 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
         //**Reset the List of Expected and Actual
         listExpectedItems.clear()
         listActualItems.clear()
+        listActualFiles.clear()
     }
 
     private fun saveActualItems(itemList: Array<File>) {
         for (item in itemList) {
             listActualItems.add(item.name)
+
+            //Checking MD5 Files
+            listActualFiles.add(item.absoluteFile)
+            /*val data = checkSumHelper.generateMD5Code(item.path)
+            println("Data Name -> ${item.name}:: MD5 ->$data")*/
         }
     }
 
@@ -408,6 +413,10 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
     private fun compareData(listFile: File?, listExpectedItems: MutableList<String>?, listActualItems: MutableList<String>?) {
         if (listExpectedItems != null && listActualItems != null) {
             isContentEquals(listExpectedItems, listActualItems).also {
+                val outputMessage: String
+                var notesOutputMessage: String? = null
+                var expectedOutputMessage: String? = null
+
                 totalConfigData += 1 //Count How Many Files Are Compared
 
                 val expectedSize: Int = listExpectedItems.size
@@ -415,51 +424,51 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
 
                 if (it) {
                     passedConfigData += 1 //If Passed, Add Counter
-
-                    val statusTableData = mutableListOf<Any>("&#10105;", "<p class=\"tableData\">Status</p>", "<p class=\"passed\">PASSED</p>")
+                    val statusTableData = mutableListOf<Any>("<p class=\"tableData\">$strStatus</p>", "<p class=\"passed\">$strPassed</p>")
                     stbAppendTableData(null, statusTableData)
                     stbAppendStyle("table-close", null)
 
-                    if (actualSize < 2) {
-                        stbAppendStyle("p", "&#8258;<u>NOTES</u>:: <b>$expectedSize Data</b> from Config (.txt) is <b>Successfully Mapped</b> to Selected Directories &#9989;")
+                    outputMessage = if (actualSize < 2) {
+                        String.format(strConfigPassedHTML, expectedSize, "Data", "is")
                     } else {
-                        stbAppendStyle("p", "&#8258;<u>NOTES</u>:: <b>$expectedSize Data(s)</b> from Config (.txt) are <b>Successfully Mapped</b> to Selected Directories &#9989;")
+                        String.format(strConfigPassedHTML, expectedSize, "Data(s)", "are")
                     }
+
                 } else {
                     failedConfigData += 1 //If Failed Add Counter
-
-                    val statusTableData = mutableListOf<Any>("&#10105;", "<p class=\"tableData\">Status</p>", "<p class=\"failed\">FAILED</p>")
+                    val statusTableData = mutableListOf<Any>("<p class=\"tableData\">$strStatus</p>", "<p class=\"failed\">$strFailed</p>")
                     stbAppendTableData(null, statusTableData)
                     stbAppendStyle("table-close", null)
 
-                    if (expectedSize > actualSize) {
+                    outputMessage = if (expectedSize > actualSize) {
                         val differenceSize = expectedSize - actualSize
                         if (differenceSize < 2) {
-                            stbAppendStyle("p", "*<b style=\"color:red\">ERROR</b> &#8658; There's <b>1 Data from Config</b> (.txt) That is <b>NOT Mapping</b> to Selected Directories &#10060;")
+                            String.format(strConfigErrorNotMappingHTML, 1, "is")
                         } else {
-                            stbAppendStyle("p", "*<b style=\"color:red\">ERROR</b> &#8658; There's <b>$differenceSize Data from Config</b> (.txt) That are <b>NOT Mapping</b> to Selected Directories &#10060;")
+                            String.format(strConfigErrorNotMappingHTML, differenceSize, "are")
                         }
                     } else {
                         val differenceSize = actualSize - expectedSize
                         if (differenceSize < 2) {
-                            stbAppendStyle("p", "*<b style=\"color:red\">ERROR</b> &#8658; There's <b>1 Data</b> That is <b>NOT Based on the Config</b> (.txt) Mapped to Selected Directories &#10060;")
+                            String.format(strConfigErrorNotBasedHTML, 1, "is")
                         } else {
-                            stbAppendStyle("p", "*<b style=\"color:red\">ERROR</b> &#8658; There's <b>$differenceSize Data</b> That are <b>NOT Based on the Config</b> (.txt) Mapped to Selected Directories &#10060;")
+                            String.format(strConfigErrorNotBasedHTML, differenceSize, "are")
                         }
                     }
-                    if (expectedSize < 2) {
-                        stbAppendStyle("p-open", "*<b>NOTES</b> &#8658; <mark> <b>Expected &#8614; $expectedSize Item Mapped</b></mark> &#9474; ")
+
+                    notesOutputMessage = if (expectedSize < 2) {
+                        String.format(strConfigErrorNotesHTML, "$expectedSize Item")
                     } else {
-                        stbAppendStyle("p-open", "*<b>NOTES</b> &#8658; <mark> <b>Expected &#8614; $expectedSize Item(s) Mapped</b></mark> &#9474; ")
+                        String.format(strConfigErrorNotesHTML, "$expectedSize Item(s)")
                     }
 
-                    if (actualSize < 2) {
-                        stbAppendStyle("p-close", "<b>Actual &#8614; $actualSize Item Mapped </b>")
+                    notesOutputMessage += if (actualSize < 2) {
+                        String.format(strConfigErrorNotesActualHTML, "$actualSize Item")
                     } else {
-                        stbAppendStyle("p-close", "<b>Actual &#8614; $actualSize Item(s) Mapped </b>")
+                        String.format(strConfigErrorNotesActualHTML, "$actualSize Item(s)")
                     }
 
-                    stbAppendStyle("p", "&#8258;<b>EXPECTING</b> &#8658; <mark><b>$listExpectedItems</b></mark> but Found <b>$listActualItems</b> &#10071;")
+                    expectedOutputMessage = String.format(strConfigErrorExpectingHTML, listExpectedItems, listActualItems)
 
                     val listException = listExpectedItems.toMutableList()
                     val listActual = listActualItems.toMutableList()
@@ -467,7 +476,38 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
 
                     listErrorPath?.add(errorSummaries)
                 }
+
+                stbAppend(null)
+
+                //Listing Items
+                if (actualSize < 2) {
+                    stbAppendStyle("p", String.format(strListItemHTML, "$actualSize Data"))
+                } else {
+                    stbAppendStyle("p", String.format(strListItemHTML, "$actualSize Data(s)"))
+                }
+
+                //Creating Table
+                stbAppendStyle("table-open", null)
+                val nameTableHeader = mutableListOf<Any>(strNo, strName, strSize, strMD5Code)
+                stbAppendTableHeader(null, nameTableHeader)
+
+                for ((index, data) in listActualFiles.withIndex()) {
+                    val indexData = index + 1
+                    val fileName = data.name
+                    val sizeOfFile = FileUtils.byteCountToDisplaySize(data.length())
+                    val generateMD5 = checkSumHelper.generateMD5Code(data.absolutePath)
+
+                    val listItemTableData = mutableListOf<Any>(indexData, "<p class=\"listData\">$fileName</p>", sizeOfFile, generateMD5.toString())
+                    stbAppendTableData("center", listItemTableData)
+                }
+                stbAppendStyle("table-close", null)
+
+                stbAppendStyle("p", outputMessage)
+                if (!notesOutputMessage.isNullOrEmpty()) stbAppendStyle("p", notesOutputMessage)
+                if (!expectedOutputMessage.isNullOrEmpty()) stbAppendStyle("p", expectedOutputMessage)
             }
+
+            stbAppendStyle("div-close", null)
             stbAppend(null)
         }
     }
@@ -475,10 +515,10 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
     private fun errorSummaries(listErrorPath: MutableList<ErrorSummaries>?) {
         listErrorPath?.let {
             if (!it.isNullOrEmpty()) {
-                stbAppendStyle("h4", "ERROR LIST")
+                stbAppendStyle("h4", strErrorList)
 
                 stbAppendStyle("table-open", null)
-                val nameTableHeader = mutableListOf<Any>("No.", "Error Path Name", "Expected &#9989;", "Found &#10060;")
+                val nameTableHeader = mutableListOf<Any>(strNo, strErrorPathName, strExpectedHTML, strFoundHTML)
                 stbAppendTableHeader(null, nameTableHeader)
 
                 for ((index, dirPaths) in it.withIndex()) {
@@ -490,8 +530,8 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
                 }
 
                 stbAppendStyle("table-close", null)
-                stbAppendStyle("p", "&#8258;<b>ACTION</b> &#8658; Please <b>Check the Path/Jenkins Configuration</b> Again for Correction/Validation")
-                stbAppendStyle("h4", "*************** REPORT SUMMARIES ***************")
+                stbAppendStyle("p", strConfigErrorActionHTML)
+                stbAppendStyle("h4", strReportSummaries)
 
                 stbAppendStyle("div-close", null)
             }
@@ -508,13 +548,13 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
 
             stbAppend("<hr>")
             stbAppendStyle("div-open", "pj")
-            stbAppendStyle("h4", "*************** REPORT SUMMARIES ***************")
-            stbAppendStyle("p", "&#8258;<b>Total Data</b> &#8658; $totalValue")
-            stbAppendStyle("p", "&#8258;<b style=\"color:green\">Total Passed Data</b> &#8658; $passedValue")
-            stbAppendStyle("p", "&#8258;<b style=\"color:red\">Total Failed Data</b> &#8658; $failedValue")
+            stbAppendStyle("h4", strReportSummaries)
+            stbAppendStyle("p", "&#8258;<b>$strTotalData</b> &#8658; $totalValue")
+            stbAppendStyle("p", "&#8258;<b style=\"color:green\">$strTotalPassedData</b> &#8658; $passedValue")
+            stbAppendStyle("p", "&#8258;<b style=\"color:red\">$strTotalFailedData</b> &#8658; $failedValue")
 
             stbAppendStyle("table-open", null)
-            val nameTableHeader = mutableListOf<Any>("Passed &#9989;", "Failed &#10060;")
+            val nameTableHeader = mutableListOf<Any>("$strPassed &#9989;", "$strFailed &#10060;")
             stbAppendTableHeader(null, nameTableHeader)
 
             val successful = decFormat.format(successPercentage)
@@ -562,17 +602,17 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
     private fun initHeader(projectName: String, configType: String, lists: Array<File>) {
         stbAppendStyle("div-open", "pj")
 
-        stbAppendStyle("h4", "*************** CONFIG VALIDATOR ***************")
+        stbAppendStyle("h4", strConfigValidator)
         stbAppendStyle("table-open", null)
 
-        val headerName = mutableListOf<Any>("Project Name", "Flavor-Type", "Node Quantity")
+        val headerName = mutableListOf<Any>(strProjectName, strFlavorType, strNodeQuantity)
         stbAppendTableHeader(null, headerName)
 
-        val tableData = mutableListOf<Any>(projectName, configType, lists.size)
+        val tableData = mutableListOf<Any>("<p class=\"listData\">$projectName</p>", "<mark><b>$configType</b></mark>", lists.size)
         stbAppendTableData("center", tableData)
 
         stbAppendStyle("table-close", null)
-        stbAppendStyle("h4", "*************** CONFIG VALIDATOR ***************")
+        stbAppendStyle("h4", strConfigValidator)
 
         stbAppendStyle("div-close", null)
     }
@@ -580,79 +620,9 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
     private fun initHtmlStyle(projectName: String, configType: String) {
         stbAppend("""<html>
                         <head>
-                            <title>Config Validator $projectName | $configType </title>
+                            <title>Validator $projectName | $configType </title>
                             <meta name ="viewport" content="width=device-width, initial-scale=1">
-                            <style>
-                                table, th, td {
-                                    border-collapse: initial;
-                                    text-align: left;
-                                    vertical-align: middle;
-                                    padding: 8px;
-                                    border-radius: 4px;
-                                }
-                                
-                                div{
-                                    padding: 16px;
-                                    display:inline-block;
-                                    border-radius: 8px;
-                                }
-                                
-                                div.pj{
-                                    background-color: #ffe6cc;
-                                }
-                                
-                                div.content{
-                                    background-color: #f2f2f2;
-                                }
-                                
-                                th.center{
-                                    vertical-align: middle;
-                                    text-align: center;
-                                }
-                                
-                                td.center{
-                                    text-align: center;
-                                }
-
-                                h4{
-                                    margin-top: 16px;
-                                    margin-bottom: 16px;
-                                }
-                                
-                                h3 {
-                                    margin-top: 4px;
-                                    margin-bottom: 4px;
-                                }
-                                
-                                p{
-                                    margin-top: 4px;    
-                                    margin-bottom: 4px;
-                                }
-                                
-                                p.percentage{
-                                    font-weight: bold;
-                                    font-size: 24px;
-                                }
-                                
-                                p.passed{
-                                    font-weight: bold;
-                                    color: green;
-                                }
-                                
-                                p.failed{
-                                    font-weight: bold;
-                                    color: red;
-                                }
-                                
-                                p.listData{
-                                    font-weight: bold;
-                                    color: blue;
-                                }
-                                
-                                p.tableData{
-                                    font-weight: bold;
-                                }
-                            </style>
+                            $strStyleHTML
                         </head>
                         <body>
                     """.trimIndent())
@@ -675,7 +645,13 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
                 "h4" -> stringBuilder.append("<h4>$value</h4>")
                 "div-open" -> stringBuilder.append("<div class=\"$value\">")
                 "div-close" -> stringBuilder.append("</div>")
-                "table-open" -> stringBuilder.append("<table border=\"1px;\" bordercolor=\"#000000;\">")
+                "table-open" -> {
+                    if (value == "no-border") {
+                        stringBuilder.append("<table>")
+                    } else {
+                        stringBuilder.append("<table border=\"1px;\" bordercolor=\"#000000;\">")
+                    }
+                }
                 "table-close" -> stringBuilder.append("</table>")
                 "body-close" -> stringBuilder.append("</body>")
                 "html-close" -> stringBuilder.append("</html>")

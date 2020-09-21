@@ -28,15 +28,12 @@ public class ConfigValidator {
 
             helperHTML.initFiles(
                     "klikBCAIndividu",
-                    "INTER-WEB",
-                    "C:/Users/Adit/Documents/CI-CD/jenkins/JenkinsNode_Example/workspace/TestWorkBCA_Foldering/null/TestWorkBCA_Foldering/INTER/CONFIG/WEB",
+                    "INTER-APP",
+                    "C:/Users/Adit/Documents/CI-CD/jenkins/JenkinsNode_Example/workspace/TestWorkBCA_Foldering/null/TestWorkBCA_Foldering/INTER/CONFIG/APP",
                     //"C:/WORK_BCA/generate local config/BUILD_APP_INTER_KBI/CONFIG/APP",
-                    "C:/Users/Adit/Documents/CI-CD/jenkins/JenkinsNode_Example/workspace/TestWorkBCA_Foldering/null/TestWorkBCA_Foldering/var/changes-config-web.txt",
+                    "C:/Users/Adit/Documents/CI-CD/jenkins/JenkinsNode_Example/workspace/TestWorkBCA_Foldering/null/TestWorkBCA_Foldering/var/changes-config-app.txt",
                     "C:/Users/Adit/Documents/CI-CD/jenkins/JenkinsNode_Example/workspace/TestWorkBCA_Foldering/null/TestWorkBCA_Foldering/var");
         }
-
-        //TEST HTML
-        //ConfigHelperHTML helper = new ConfigHelperHTML(args);
 
         /*CheckSumHelper checkSumHelper = new CheckSumHelper(
                 "C:\\Users\\Adit\\Documents\\CI-CD\\jenkins\\JenkinsNode_Example\\workspace\\TestKBI_Services\\null\\TestKBI_Services\\INTER\\CONFIG\\SVC\\10.0.51.196_oln2appconsie07\\bcaibank\\app\\ibank_inter1_csmr\\ibconsumer_resp_approval\\config\\ibank_inter1_csmr_apprv_01\\Debug.properties",
