@@ -33,7 +33,8 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
     private val listExpectedItems: MutableList<String> = ArrayList()
     private val listActualFiles: MutableList<File> = ArrayList()
 
-    private val listChildGrouping: MutableList<MutableMap<String, String>> = ArrayList() //List of mapChildDataGrouping
+    //List of mapChildDataGrouping
+    private val listChildGrouping: MutableList<MutableMap<String, String>> = ArrayList()
 
     private val listDataProps: MutableList<String>? = ArrayList()
     private val listNodesName: MutableList<File>? = ArrayList()
@@ -176,8 +177,11 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
             }
 
             summaryPercentage(totalConfigData, passedConfigData, failedConfigData)
-
             errorSummaries(listErrorPath)
+
+            stbAppendStyle("h4", strReportSummaries)
+            stbAppendStyle("div-close", null)
+
             println("Successfully Running the Config Validator!")
 
             stbAppendStyle("body-close", null)
@@ -486,21 +490,7 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
                     stbAppendStyle("p", String.format(strListItemHTML, "$actualSize Data(s)"))
                 }
 
-                //Creating Table
-                stbAppendStyle("table-open", null)
-                val nameTableHeader = mutableListOf<Any>(strNo, strName, strSize, strMD5Code)
-                stbAppendTableHeader(null, nameTableHeader)
-
-                for ((index, data) in listActualFiles.withIndex()) {
-                    val indexData = index + 1
-                    val fileName = data.name
-                    val sizeOfFile = FileUtils.byteCountToDisplaySize(data.length())
-                    val generateMD5 = checkSumHelper.generateMD5Code(data.absolutePath)
-
-                    val listItemTableData = mutableListOf<Any>(indexData, "<p class=\"listData\">$fileName</p>", sizeOfFile, generateMD5.toString())
-                    stbAppendTableData("center", listItemTableData)
-                }
-                stbAppendStyle("table-close", null)
+                createListFileTable(listActualFiles)
 
                 stbAppendStyle("p", outputMessage)
                 if (!notesOutputMessage.isNullOrEmpty()) stbAppendStyle("p", notesOutputMessage)
@@ -509,6 +499,26 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
 
             stbAppendStyle("div-close", null)
             stbAppend(null)
+        }
+    }
+
+    private fun createListFileTable(listActualFiles: MutableList<File>?) {
+        listActualFiles?.let {
+            //Creating Table
+            stbAppendStyle("table-open", null)
+            val nameTableHeader = mutableListOf<Any>(strNo, strName, strSize, strMD5Code)
+            stbAppendTableHeader(null, nameTableHeader)
+
+            for ((index, data) in it.withIndex()) {
+                val indexData = index + 1
+                val fileName = data.name
+                val sizeOfFile = FileUtils.byteCountToDisplaySize(data.length())
+                val generateMD5 = checkSumHelper.generateMD5Code(data.absolutePath)
+
+                val listItemTableData = mutableListOf<Any>(indexData, "<p class=\"listData\">$fileName</p>", sizeOfFile, generateMD5.toString())
+                stbAppendTableData("center", listItemTableData)
+            }
+            stbAppendStyle("table-close", null)
         }
     }
 
@@ -531,9 +541,6 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
 
                 stbAppendStyle("table-close", null)
                 stbAppendStyle("p", strConfigErrorActionHTML)
-                stbAppendStyle("h4", strReportSummaries)
-
-                stbAppendStyle("div-close", null)
             }
         }
     }
