@@ -53,7 +53,7 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
     private var passedConfigData = 0
     private var failedConfigData = 0
 
-    fun initFiles(projectName: String, configType: String, nodesDirPath: String, configPath: String, destinationPath: String) {
+    /*fun initFiles(projectName: String, configType: String, nodesDirPath: String, configPath: String, destinationPath: String) {
         this.projectName = projectName
 
         //Init FileOutput
@@ -77,9 +77,9 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
 
         //Checking Data..
         checkMappings(nodeDirFiles, projectName, configType)
-    }
+    }*/
 
-    /*fun initFiles() {
+    fun initFiles() {
         if (args?.size == 0 || args?.size != 4) {
             println("Please Input The Parameters That's are Needed")
             println("1st Params --> Project-Name (ex: klikBCAIndividu)")
@@ -97,6 +97,7 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
             if (!fileOutput.exists()) {
                 fileOutput.createNewFile()
             }
+
             stringBuilder = StringBuilder()
 
             //Init Config Dir
@@ -110,7 +111,7 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
             //Checking Data..
             checkMappings(nodeDirFiles, projectName, configType)
         }
-    }*/
+    }
 
     private fun checkMappings(nodeDirFiles: File?, projectName: String, configType: String) {
         nodeDirFiles?.let { data ->
@@ -280,7 +281,13 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
                                     stbAppendStyle("p", String.format(strConfigNameHTML, numbers, key))
 
                                     stbAppendStyle("table-open", null)
-                                    val lastIndexOf = value.lastIndexOf("\\")
+
+                                    var setPath = value
+                                    if (setPath.contains("\\")) {
+                                        setPath = setPath.replace("\\", "/")
+                                    }
+
+                                    val lastIndexOf = setPath.lastIndexOf("/")
                                     val pathLink = "<a href=\"$value\" target=\"_blank\">${value.substring(lastIndexOf + 1)}</a>"
                                     val pathTableData = mutableListOf<Any>("<p class=\"tableData\">$strPathName</p>", pathLink)
                                     stbAppendTableData(null, pathTableData)
@@ -321,7 +328,12 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
                                 stbAppendStyle("p", String.format(strInstanceNameHTML, key + 1))
                                 stbAppendStyle("table-open", null)
 
-                                val lastIndexOf = value.lastIndexOf("\\")
+                                var setPath = value
+                                if (setPath.contains("\\")) {
+                                    setPath = setPath.replace("\\", "/")
+                                }
+
+                                val lastIndexOf = setPath.lastIndexOf("/")
                                 val pathLink = "<a href=\"$value\" target=\"_blank\">${value.substring(lastIndexOf + 1)}</a>"
 
                                 val pathTableData = mutableListOf<Any>("<p class=\"tableData\">$strPathName</p>", pathLink)
@@ -341,9 +353,12 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
     }
 
     private fun subStringDir(lastConfigPath: String): String {
-        val fixPathDir = lastConfigPath.replace("/", "\\")
-        val indexing = fixPathDir.lastIndexOf("\\")
-        return fixPathDir.substring(indexing + 1) //Getting the Last Dir Name -> ex: from ~> C\TestPath\Test\Path || to ~> Path
+        var mLastConfigPath = lastConfigPath
+        if (mLastConfigPath.contains("\\")) {
+            mLastConfigPath = mLastConfigPath.replace("\\", "/")
+        }
+        val indexing = mLastConfigPath.lastIndexOf("/")
+        return mLastConfigPath.substring(indexing + 1) //Getting the Last Dir Name -> ex: from ~> C\TestPath\Test\Path || to ~> Path
     }
 
     private fun printListNode(parentIndex: Int, dirPaths: File) {
@@ -532,7 +547,12 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
                 stbAppendTableHeader(null, nameTableHeader)
 
                 for ((index, dirPaths) in it.withIndex()) {
-                    val lastIndexOf = dirPaths.errorPath.toString().lastIndexOf("\\")
+                    var errorPaths = dirPaths.errorPath.toString()
+                    if (errorPaths.contains("\\")) {
+                        errorPaths = errorPaths.replace("\\", "/")
+                    }
+
+                    val lastIndexOf = errorPaths.lastIndexOf("/")
                     val linkPath = "<a href =\"${dirPaths.errorPath}\" target=\"_blank\"> ${dirPaths.errorPath.toString().substring(lastIndexOf + 1)}</a>"
 
                     val errorListTableData = mutableListOf<Any>((index + 1), linkPath, "<b>${dirPaths.listExpected}</b>", "${dirPaths.listActualItems}")

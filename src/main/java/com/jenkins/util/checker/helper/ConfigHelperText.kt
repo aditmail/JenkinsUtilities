@@ -48,7 +48,7 @@ class ConfigHelperText(private val args: Array<String>?) : IConfig.PrintWriter {
     private var passedConfigData = 0
     private var failedConfigData = 0
 
-    fun initFiles(projectName: String, configType: String, nodesDirPath: String, configPath: String, destinationPath: String) {
+    /*fun initFiles(projectName: String, configType: String, nodesDirPath: String, configPath: String, destinationPath: String) {
         this.projectName = projectName
 
         //Init FileOutput
@@ -72,7 +72,7 @@ class ConfigHelperText(private val args: Array<String>?) : IConfig.PrintWriter {
 
         //Checking Data..
         checkMappings(nodeDirFiles, projectName, configType)
-    }
+    }*/
 
     fun initFiles() {
         if (args?.size == 0 || args?.size != 4) {
