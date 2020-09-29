@@ -93,7 +93,7 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
             val configPath = args[3].trim()
 
             //Init FileOutput
-            fileOutput = File("var/outputConfig_${configType}.html")
+            fileOutput = File("outputConfig_${configType}.html") //Save not in VAR Folder..
             if (!fileOutput.exists()) {
                 fileOutput.createNewFile()
             }
@@ -123,7 +123,9 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
 
                 for ((index, dirPaths) in lists.withIndex()) {
                     listNodesName?.add(dirPaths)
-                    val startParentPathing = Paths.get(dirPaths.absolutePath) //Start Listing
+                    //val startParentPathing = Paths.get(dirPaths.canonicalPath) //Start Listing
+                    val startParentPathing = Paths.get(dirPaths.path) //Start Listing using Relative PATH
+                    println("Parent Path: $startParentPathing")
 
                     try {
                         val collect = getParentStreamList(startParentPathing)
@@ -288,7 +290,7 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
                                     }
 
                                     val lastIndexOf = setPath.lastIndexOf("/")
-                                    val pathLink = "<a href=\"$value\" target=\"_blank\">${value.substring(lastIndexOf + 1)}</a>"
+                                    val pathLink = "<a href=\"$setPath\" target=\"_blank\">${setPath.substring(lastIndexOf + 1)}</a>"
                                     val pathTableData = mutableListOf<Any>("<p class=\"tableData\">$strPathName</p>", pathLink)
                                     stbAppendTableData(null, pathTableData)
 
@@ -334,7 +336,7 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
                                 }
 
                                 val lastIndexOf = setPath.lastIndexOf("/")
-                                val pathLink = "<a href=\"$value\" target=\"_blank\">${value.substring(lastIndexOf + 1)}</a>"
+                                val pathLink = "<a href=\"$setPath\" target=\"_blank\">${setPath.substring(lastIndexOf + 1)}</a>"
 
                                 val pathTableData = mutableListOf<Any>("<p class=\"tableData\">$strPathName</p>", pathLink)
                                 stbAppendTableData(null, pathTableData)
@@ -553,7 +555,7 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
                     }
 
                     val lastIndexOf = errorPaths.lastIndexOf("/")
-                    val linkPath = "<a href =\"${dirPaths.errorPath}\" target=\"_blank\"> ${dirPaths.errorPath.toString().substring(lastIndexOf + 1)}</a>"
+                    val linkPath = "<a href =\"${errorPaths}\" target=\"_blank\"> ${errorPaths.substring(lastIndexOf + 1)}</a>"
 
                     val errorListTableData = mutableListOf<Any>((index + 1), linkPath, "<b>${dirPaths.listExpected}</b>", "${dirPaths.listActualItems}")
                     stbAppendTableData("center", errorListTableData)
@@ -649,6 +651,7 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
                         <head>
                             <title>Validator $projectName | $configType </title>
                             <meta name ="viewport" content="width=device-width, initial-scale=1">
+                            <meta http-equiv ="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline';">
                             $strStyleHTML
                         </head>
                         <body>

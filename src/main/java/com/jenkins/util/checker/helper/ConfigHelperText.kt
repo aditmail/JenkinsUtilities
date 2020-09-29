@@ -88,7 +88,7 @@ class ConfigHelperText(private val args: Array<String>?) : IConfig.PrintWriter {
             val configPath = args[3].trim()
 
             //Init FileOutput
-            fileOutput = File("var/outputConfig_${configType}.txt")
+            fileOutput = File("outputConfig_${configType}.txt")
             if (!fileOutput.exists()) {
                 fileOutput.createNewFile()
             }
@@ -126,7 +126,7 @@ class ConfigHelperText(private val args: Array<String>?) : IConfig.PrintWriter {
                 for ((index, dirPaths) in lists.withIndex()) {
                     listNodesName?.add(dirPaths)
 
-                    val startParentPathing = Paths.get(dirPaths.absolutePath) //Start Listing
+                    val startParentPathing = Paths.get(dirPaths.path) //Start Listing
                     try {
                         val collect = getParentStreamList(startParentPathing)
                         collect?.let { parentList ->
