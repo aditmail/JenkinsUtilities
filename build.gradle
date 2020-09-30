@@ -7,7 +7,10 @@ group 'org.example'
 version '1.0-SNAPSHOT'
 
 repositories {
-    mavenCentral()
+    maven { url 'http://bcaartifactory:8080/artifactory/list/jcenter.bintray.com/' }
+    maven { url 'http://bcaartifactory:8080/artifactory/list/central.maven.org/' }
+    maven { url 'http://bcaartifactory:8080/artifactory/list/Repo1Maven/' }
+    maven { url 'http://bcaartifactory:8080/artifactory/list/Repo2Maven/' }
 }
 
 dependencies {
