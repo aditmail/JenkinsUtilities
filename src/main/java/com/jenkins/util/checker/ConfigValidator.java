@@ -21,7 +21,7 @@ public class ConfigValidator {
                 helperText.initFiles();
             }
         } else {
-            System.out.println("Report Model: Undefined, Defaulting as HTML");
+            System.out.println("Report Models: Undefined, Defaulting as HTML");
 
             ConfigHelperHTML helperHTML = new ConfigHelperHTML(args);
             helperHTML.initFiles();
