@@ -1,8 +1,5 @@
-package com.jenkins.util.checker.helper
+package com.jenkins.util.checker.utils
 
-import com.jenkins.util.checker.utils.getFile
-import org.apache.commons.codec.digest.DigestUtils
-import java.io.File
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.security.MessageDigest

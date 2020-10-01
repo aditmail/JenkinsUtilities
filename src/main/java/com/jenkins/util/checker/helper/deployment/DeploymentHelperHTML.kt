@@ -1,4 +1,4 @@
-package com.jenkins.util.checker.helper
+package com.jenkins.util.checker.helper.deployment
 
 import com.jenkins.util.checker.models.ErrorSummaries
 import com.jenkins.util.checker.utils.*
@@ -14,7 +14,7 @@ import java.util.stream.Collectors
 import java.util.stream.Stream
 import kotlin.collections.ArrayList
 
-class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilders {
+class DeploymentHelperHTML(private val args: Array<String>?) : IConfig.StringBuilders {
 
     //Data Files
     private var nodeDirFiles: File? = null //Path of Dir Config
@@ -53,8 +53,48 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
     private var passedConfigData = 0
     private var failedConfigData = 0
 
-    /*fun initFiles(projectName: String, configType: String, nodesDirPath: String, configPath: String, destinationPath: String) {
+    fun initFiles(projectName: String, configType: String, nodesDirPath: String, configPath: String, destinationPath: String) {
         this.projectName = projectName
+
+        //Init Config File
+        configFile = getFile(configPath)
+        populateProperties() //Read the txt contains Properties Data..
+
+        if (!listDataProps.isNullOrEmpty()) {
+            startValidating(configType, nodesDirPath, destinationPath)
+        } else {
+            println("""All ${configFile?.name} Properties Contains False Value
+                The Deployment Validator is Cancelled.
+            """.trimMargin())
+        }
+    }
+
+    private fun populateProperties() {
+        configFile?.let { config ->
+            val envStream = FileInputStream(config) //Load Config Properties from Params
+            properties.load(envStream) //Load as Properties
+
+            for (keys in properties.stringPropertyNames()) {
+                if (properties.getProperty(keys) == "true") {
+                    if (keys.contains("/")) {
+                        val index = keys.lastIndexOf("/")
+                        val firstValue = keys.substring(0, index)
+                        //val lastValue = keys.substring(index + 1)
+
+                        if (listDataProps!!.isEmpty()) {
+                            listDataProps.add(firstValue)
+                        } else {
+                            if (!listDataProps.contains(firstValue)) {
+                                listDataProps.add(firstValue)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun startValidating(configType: String, nodesDirPath: String, destinationPath: String) {
 
         //Init FileOutput
         fileOutput = File("$destinationPath/outputConfigs_${configType}.html")
@@ -70,47 +110,8 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
         //Init Config Dir
         nodeDirFiles = File(nodesDirPath)
 
-        //Init Config File
-        configFile = getFile(configPath)
-
-        populateProperties()
-
         //Checking Data..
         checkMappings(nodeDirFiles, projectName, configType)
-    }*/
-
-    fun initFiles() {
-        if (args?.size == 0 || args?.size != 4) {
-            println("Please Input The Parameters That's are Needed")
-            println("1st Params --> Project-Name (ex: klikBCAIndividu)")
-            println("2nd Params --> Config-Type (ex: Pilot-APP)")
-            println("3rd Params --> Nodes-Dir-Path (ex: ../KBI/PILOT/CONFIG/APP")
-            println("4th Params --> Config_Path (ex: ..KBI/var/changes-config-app.txt")
-        } else {
-            projectName = args[0].trim()
-            val configType = args[1].trim()
-            val nodeDir = args[2].trim()
-            val configPath = args[3].trim()
-
-            //Init FileOutput
-            fileOutput = File("outputConfig_${configType}.html") //Save not in VAR Folder..
-            if (!fileOutput.exists()) {
-                fileOutput.createNewFile()
-            }
-
-            stringBuilder = StringBuilder()
-
-            //Init Config Dir
-            nodeDirFiles = File(nodeDir)
-
-            //Init Config File
-            configFile = getFile(configPath)
-
-            populateProperties()
-
-            //Checking Data..
-            checkMappings(nodeDirFiles, projectName, configType)
-        }
     }
 
     private fun checkMappings(nodeDirFiles: File?, projectName: String, configType: String) {
@@ -195,10 +196,40 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
         }
     }
 
+    private fun initHtmlStyle(projectName: String, configType: String) {
+        stbAppend("""<html>
+                        <head>
+                            <title>Validator $projectName | $configType </title>
+                            <meta name ="viewport" content="width=device-width, initial-scale=1">
+                            <meta http-equiv ="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline';">
+                            $strStyleHTML
+                        </head>
+                        <body>
+                    """.trimIndent())
+    }
+
+    private fun initHeader(projectName: String, configType: String, lists: Array<File>) {
+        stbAppendStyle("div-open", "pj")
+
+        stbAppendStyle("h4", strConfigValidator)
+        stbAppendStyle("table-open", null)
+
+        val headerName = mutableListOf<Any>(strProjectName, strFlavorType, strNodeQuantity)
+        stbAppendTableHeader(null, headerName)
+
+        val tableData = mutableListOf<Any>("<p class=\"listData\">$projectName</p>", "<mark><b>$configType</b></mark>", lists.size)
+        stbAppendTableData("center", tableData)
+
+        stbAppendStyle("table-close", null)
+        stbAppendStyle("h4", strConfigValidator)
+
+        stbAppendStyle("div-close", null)
+    }
+
     private fun getParentStreamList(startParentPathing: Path): List<String>? {
         val parentStream: Stream<Path> = Files.walk(startParentPathing, Int.MAX_VALUE) //Discovering the parentPath with Max value to its Last Subfolder
         return parentStream.map(java.lang.String::valueOf)
-                .filter { it.endsWith("config") } //Filtering to get 'config' directory Only
+                .filter { it.endsWith("deployment") } //Filtering to get 'config' directory Only
                 .sorted()
                 .collect(Collectors.toList())
     }
@@ -210,6 +241,15 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
                 .collect(Collectors.toList())
     }
 
+    private fun subStringDir(lastConfigPath: String): String {
+        var mLastConfigPath = lastConfigPath
+        if (mLastConfigPath.contains("\\")) {
+            mLastConfigPath = mLastConfigPath.replace("\\", "/")
+        }
+        val indexing = mLastConfigPath.lastIndexOf("/")
+        return mLastConfigPath.substring(indexing + 1) //Getting the Last Dir Name -> ex: from ~> C\TestPath\Test\Path || to ~> Path
+    }
+
     /** Sorting Process..
      * if ListDataProps value are contains in the path looping
      * Then insert it into mapChildGrouping
@@ -218,10 +258,10 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
      * */
     private fun mappingChildConfig(listDataProps: MutableList<String>, lastDirName: String, lastConfigPath: String) {
         for (value in listDataProps) {
+            println("Last Dir:: $lastDirName || Values:: $value")
             if (lastDirName.contains(value)) {
                 println("'$lastDirName' Contains $value ? [TRUE][MAPPED to '$value'] (V)")
                 mapChildGrouping = mutableMapOf(value to lastConfigPath)
-
                 listChildGrouping.add(mapChildGrouping)
             } else {
                 val checkerTest = valueChecker(projectName, value)
@@ -352,15 +392,6 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
                 }
             }
         }
-    }
-
-    private fun subStringDir(lastConfigPath: String): String {
-        var mLastConfigPath = lastConfigPath
-        if (mLastConfigPath.contains("\\")) {
-            mLastConfigPath = mLastConfigPath.replace("\\", "/")
-        }
-        val indexing = mLastConfigPath.lastIndexOf("/")
-        return mLastConfigPath.substring(indexing + 1) //Getting the Last Dir Name -> ex: from ~> C\TestPath\Test\Path || to ~> Path
     }
 
     private fun printListNode(parentIndex: Int, dirPaths: File) {
@@ -539,34 +570,6 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
         }
     }
 
-    private fun errorSummaries(listErrorPath: MutableList<ErrorSummaries>?) {
-        listErrorPath?.let {
-            if (!it.isNullOrEmpty()) {
-                stbAppendStyle("h4", strErrorList)
-
-                stbAppendStyle("table-open", null)
-                val nameTableHeader = mutableListOf<Any>(strNo, strErrorPathName, strExpectedHTML, strFoundHTML)
-                stbAppendTableHeader(null, nameTableHeader)
-
-                for ((index, dirPaths) in it.withIndex()) {
-                    var errorPaths = dirPaths.errorPath.toString()
-                    if (errorPaths.contains("\\")) {
-                        errorPaths = errorPaths.replace("\\", "/")
-                    }
-
-                    val lastIndexOf = errorPaths.lastIndexOf("/")
-                    val linkPath = "<a href =\"${errorPaths}\" target=\"_blank\"> ${errorPaths.substring(lastIndexOf + 1)}</a>"
-
-                    val errorListTableData = mutableListOf<Any>((index + 1), linkPath, "<b>${dirPaths.listExpected}</b>", "${dirPaths.listActualItems}")
-                    stbAppendTableData("center", errorListTableData)
-                }
-
-                stbAppendStyle("table-close", null)
-                stbAppendStyle("p", strConfigErrorActionHTML)
-            }
-        }
-    }
-
     private fun summaryPercentage(totalValue: Int, passedValue: Int, failedValue: Int) {
         if (totalValue != 0) {
             val decFormat = DecimalFormat("#.##")
@@ -596,66 +599,39 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
         }
     }
 
+    private fun errorSummaries(listErrorPath: MutableList<ErrorSummaries>?) {
+        listErrorPath?.let {
+            if (!it.isNullOrEmpty()) {
+                stbAppendStyle("h4", strErrorList)
+
+                stbAppendStyle("table-open", null)
+                val nameTableHeader = mutableListOf<Any>(strNo, strErrorPathName, strExpectedHTML, strFoundHTML)
+                stbAppendTableHeader(null, nameTableHeader)
+
+                for ((index, dirPaths) in it.withIndex()) {
+                    var errorPaths = dirPaths.errorPath.toString()
+                    if (errorPaths.contains("\\")) {
+                        errorPaths = errorPaths.replace("\\", "/")
+                    }
+
+                    val lastIndexOf = errorPaths.lastIndexOf("/")
+                    val linkPath = "<a href =\"${errorPaths}\" target=\"_blank\"> ${errorPaths.substring(lastIndexOf + 1)}</a>"
+
+                    val errorListTableData = mutableListOf<Any>((index + 1), linkPath, "<b>${dirPaths.listExpected}</b>", "${dirPaths.listActualItems}")
+                    stbAppendTableData("center", errorListTableData)
+                }
+
+                stbAppendStyle("table-close", null)
+                stbAppendStyle("p", strConfigErrorActionHTML)
+            }
+        }
+    }
+
     private fun writeToFile(fileContent: String, fileOutput: File) {
         val outputStream = FileOutputStream(fileOutput.absoluteFile)
         val writer = OutputStreamWriter(outputStream)
         writer.write(fileContent)
         writer.close()
-    }
-
-    private fun populateProperties() {
-        configFile?.let { config ->
-            val envStream = FileInputStream(config) //Load Config Properties from Params
-            properties.load(envStream) //Load as Properties
-
-            for (keys in properties.stringPropertyNames()) {
-                if (properties.getProperty(keys) == "true") {
-                    if (keys.contains("/")) {
-                        val index = keys.lastIndexOf("/")
-                        val firstValue = keys.substring(0, index)
-                        //val lastValue = keys.substring(index + 1)
-
-                        if (listDataProps!!.isEmpty()) {
-                            listDataProps.add(firstValue)
-                        } else {
-                            if (!listDataProps.contains(firstValue)) {
-                                listDataProps.add(firstValue)
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private fun initHeader(projectName: String, configType: String, lists: Array<File>) {
-        stbAppendStyle("div-open", "pj")
-
-        stbAppendStyle("h4", strConfigValidator)
-        stbAppendStyle("table-open", null)
-
-        val headerName = mutableListOf<Any>(strProjectName, strFlavorType, strNodeQuantity)
-        stbAppendTableHeader(null, headerName)
-
-        val tableData = mutableListOf<Any>("<p class=\"listData\">$projectName</p>", "<mark><b>$configType</b></mark>", lists.size)
-        stbAppendTableData("center", tableData)
-
-        stbAppendStyle("table-close", null)
-        stbAppendStyle("h4", strConfigValidator)
-
-        stbAppendStyle("div-close", null)
-    }
-
-    private fun initHtmlStyle(projectName: String, configType: String) {
-        stbAppend("""<html>
-                        <head>
-                            <title>Validator $projectName | $configType </title>
-                            <meta name ="viewport" content="width=device-width, initial-scale=1">
-                            <meta http-equiv ="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline';">
-                            $strStyleHTML
-                        </head>
-                        <body>
-                    """.trimIndent())
     }
 
     override fun stbAppend(value: String?) {

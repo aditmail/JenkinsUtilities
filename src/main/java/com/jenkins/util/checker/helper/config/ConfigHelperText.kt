@@ -1,4 +1,4 @@
-package com.jenkins.util.checker.helper
+package com.jenkins.util.checker.helper.config
 
 import com.jenkins.util.checker.models.ErrorSummaries
 import com.jenkins.util.checker.utils.*

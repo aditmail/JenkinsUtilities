@@ -1,7 +1,8 @@
 package com.jenkins.util.checker;
 
-import com.jenkins.util.checker.helper.ConfigHelperHTML;
-import com.jenkins.util.checker.helper.ConfigHelperText;
+import com.jenkins.util.checker.helper.config.ConfigHelperHTML;
+import com.jenkins.util.checker.helper.config.ConfigHelperText;
+import com.jenkins.util.checker.helper.deployment.DeploymentHelperHTML;
 
 public class ConfigValidator {
 
@@ -13,7 +14,7 @@ public class ConfigValidator {
                 System.out.println("Report Model: HTML Selected!");
 
                 ConfigHelperHTML helperHTML = new ConfigHelperHTML(args);
-                helperHTML.initFiles();
+                //helperHTML.initFiles();
             } else if (reportModel.equalsIgnoreCase("text")) {
                 System.out.println("Report Model: Text Selected!");
 
@@ -24,15 +25,31 @@ public class ConfigValidator {
             System.out.println("Report Models: Undefined, Defaulting as HTML");
 
             ConfigHelperHTML helperHTML = new ConfigHelperHTML(args);
-            helperHTML.initFiles();
+            //helperHTML.initFiles();
 
+            //WEB CONFIG
             /*helperHTML.initFiles(
                     "klikBCAIndividu",
-                    "INTER-WEB",
-                    "C:/Users/Adit/Documents/CI-CD/jenkins/JenkinsNode_Example/workspace/TestWorkBCA_Foldering/null/TestWorkBCA_Foldering/INTER/CONFIG/WEB",
-                    //"C:/WORK_BCA/generate local config/BUILD_APP_INTER_KBI/CONFIG/APP",
-                    "C:/Users/Adit/Documents/CI-CD/jenkins/JenkinsNode_Example/workspace/TestWorkBCA_Foldering/null/TestWorkBCA_Foldering/var/changes-config-web.txt",
-                    "C:/Users/Adit/Documents/CI-CD/jenkins/JenkinsNode_Example/workspace/TestWorkBCA_Foldering/null/TestWorkBCA_Foldering/var");*/
+                    "PILOT-WEB",
+                    "D:/TEST CASE/KBI-PILOT-CONFIG-VALIDATOR/DEPLOY/PILOT/WEB",
+                    "D:/TEST CASE/KBI-PILOT-CONFIG-VALIDATOR/var/changes-config-web.txt",
+                    "D:/TEST CASE/KBI-PILOT-CONFIG-VALIDATOR/");
+*/
+            //APP CONFIG
+            /*helperHTML.initFiles(
+                    "klikBCAIndividu",
+                    "PILOT-APP",
+                    "D:/TEST CASE/KBI-PILOT-CONFIG-VALIDATOR/DEPLOY/PILOT/APP",
+                    "D:/TEST CASE/KBI-PILOT-CONFIG-VALIDATOR/var/changes-config-app.txt",
+                    "D:/TEST CASE/KBI-PILOT-CONFIG-VALIDATOR/");*/
+
+            DeploymentHelperHTML deploymentHelperHTML = new DeploymentHelperHTML(args);
+            deploymentHelperHTML.initFiles(
+                    "klikBCAIndividu",
+                    "PILOT-APP-DEPLOY",
+                    "D:/TEST CASE/KBI-PILOT-CONFIG-VALIDATOR/DEPLOY/PILOT",
+                    "D:/TEST CASE/KBI-PILOT-CONFIG-VALIDATOR/var/changes-deployment.txt",
+                    "D:/TEST CASE/KBI-PILOT-CONFIG-VALIDATOR/");
         }
     }
 }
