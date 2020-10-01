@@ -1,0 +1,39 @@
+{
+  "deploy_mapper": [
+    {
+      "project_name": "klikBCAIndividu",
+      "deployment_dir_name": [
+        {
+          "prop_name": "IBank",
+          "dir_path_name": "ibank",
+          "models": [
+            {
+              "application": "APP",
+              "artifact": [
+                "IBankApp.jar"
+              ]
+            },
+            {
+              "application": "WEB",
+              "artifact": [
+                "IBankWeb.war"
+              ]
+            }
+          ]
+        },
+        {
+          "prop_name": "IBSmartphone",
+          "dir_path_name": "mklik",
+          "models": [
+            {
+              "application": "WEB",
+              "artifact": [
+                "sp.war"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

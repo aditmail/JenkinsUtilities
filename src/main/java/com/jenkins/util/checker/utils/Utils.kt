@@ -4,9 +4,11 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.jenkins.util.checker.ConfigValidator
 import com.jenkins.util.checker.models.ConfigMapper
+import com.jenkins.util.checker.models.DeploymentMappers
 import org.apache.commons.collections4.CollectionUtils
 import java.io.*
 import java.nio.charset.StandardCharsets
+import java.util.*
 
 inline fun <reified T> isEqual(first: List<T>, second: List<T>): Boolean {
     if (first.size != second.size) {
@@ -79,4 +81,59 @@ fun valueChecker(projectName: String, value: String): List<String>? {
     }
 
     return listDir
+}
+
+fun deploymentChecker(projectName: String, propName: String, dirValue: String, lastConfigPath: String) {
+    //projectName -> KBI
+    //propName -> IBank
+    //dirValue -> ibank_pilot1 or mklik_pilot
+    val filename = getFileFromResources("DeployMapper.json")
+    val listMapping = object : TypeToken<DeploymentMappers>() {}.type
+    val dataGSON = Gson().fromJson<DeploymentMappers>(filename, listMapping)
+    for (data in dataGSON.deploy_mapper) {
+        if (data.project_name == projectName) {
+            for (deploymentList in data.deployment_dir_name) {
+                if (deploymentList.prop_name == propName) {
+                    if (dirValue.contains(deploymentList.dir_path_name)) {
+                        for (modelsData in deploymentList.models) {
+                            if (lastConfigPath.contains(modelsData.application)) {
+
+                            }
+                        }
+                    } else {
+
+                    }
+                }
+            }
+        }
+    }
+}
+
+fun deploymentConfig(projectName: String, propName: String, deploymentProperties: Properties) {
+    //projectName -> KBI
+    //propName -> IBank
+    val filename = getFileFromRes("DeployMapper.json")
+    filename?.let {
+        val listMapping = object : TypeToken<DeploymentMappers>() {}.type
+        val bufferedReader = BufferedReader(FileReader(it))
+
+        val dataGSON = Gson().fromJson<DeploymentMappers>(bufferedReader, listMapping)
+        for (data in dataGSON.deploy_mapper) {
+            if (data.project_name == projectName) {
+                for (deploymentList in data.deployment_dir_name) {
+                    if (deploymentList.prop_name == propName) {
+                        val dirPathName = deploymentList.dir_path_name
+                        for (models in deploymentList.models) {
+                            val applicationModel = models.application
+                            for (listArtifact in models.artifact) {
+                                deploymentProperties.setProperty("$dirPathName/$listArtifact",applicationModel)
+                            }
+                        }
+                    }
+                }
+
+                //deploymentProp.store(FileOutputStream(File.createTempFile( "DeployProps", ".properties")), null)
+            }
+        }
+    }
 }

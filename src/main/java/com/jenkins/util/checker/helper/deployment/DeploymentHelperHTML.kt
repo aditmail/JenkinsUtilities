@@ -26,6 +26,7 @@ class DeploymentHelperHTML(private val args: Array<String>?) : IConfig.StringBui
 
     private lateinit var stringBuilder: StringBuilder
     private val properties = Properties()
+    private val deploymentProperties = Properties()
     private val checkSumHelper = CheckSumHelper()
 
     //Init List
@@ -58,8 +59,9 @@ class DeploymentHelperHTML(private val args: Array<String>?) : IConfig.StringBui
 
         //Init Config File
         configFile = getFile(configPath)
-        populateProperties() //Read the txt contains Properties Data..
+        populateProperties(destinationPath) //Read the txt contains Properties Data..
 
+        println("ListDataProps:: $listDataProps || configFile:: $configFile")
         if (!listDataProps.isNullOrEmpty()) {
             startValidating(configType, nodesDirPath, destinationPath)
         } else {
@@ -69,7 +71,7 @@ class DeploymentHelperHTML(private val args: Array<String>?) : IConfig.StringBui
         }
     }
 
-    private fun populateProperties() {
+    private fun populateProperties(destinationPath: String) {
         configFile?.let { config ->
             val envStream = FileInputStream(config) //Load Config Properties from Params
             properties.load(envStream) //Load as Properties
@@ -88,9 +90,14 @@ class DeploymentHelperHTML(private val args: Array<String>?) : IConfig.StringBui
                                 listDataProps.add(firstValue)
                             }
                         }
+                    } else {
+                        deploymentConfig(projectName, keys, deploymentProperties)
+                        listDataProps?.add(keys)
                     }
                 }
             }
+
+            deploymentProperties.store(FileOutputStream(File(destinationPath, "DeployProp.properties")), null)
         }
     }
 
@@ -258,7 +265,7 @@ class DeploymentHelperHTML(private val args: Array<String>?) : IConfig.StringBui
      * */
     private fun mappingChildConfig(listDataProps: MutableList<String>, lastDirName: String, lastConfigPath: String) {
         for (value in listDataProps) {
-            println("Last Dir:: $lastDirName || Values:: $value")
+            println("Last Dir:: $lastDirName || Values:: $value || \nlastConfigPath:: $lastConfigPath")
             if (lastDirName.contains(value)) {
                 println("'$lastDirName' Contains $value ? [TRUE][MAPPED to '$value'] (V)")
                 mapChildGrouping = mutableMapOf(value to lastConfigPath)
