@@ -2,8 +2,10 @@ package com.jenkins.util.checker.helper.deployment
 
 import com.jenkins.util.checker.models.ErrorSummaries
 import com.jenkins.util.checker.utils.*
-import org.apache.commons.io.FileUtils
-import java.io.*
+import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
+import java.io.OutputStreamWriter
 import java.math.RoundingMode
 import java.nio.file.Files
 import java.nio.file.Path
@@ -30,26 +32,10 @@ class DeploymentHelperHTML(private val args: Array<String>?) : IConfig.StringBui
     private val deploymentProperties = Properties()
     private lateinit var deployPropFile: File
 
-    private val checkSumHelper = CheckSumHelper()
-
-    //Init List
-    private val listActualItems: MutableList<String> = ArrayList()
-    private val listExpectedItems: MutableList<String> = ArrayList()
-    private val listActualFiles: MutableList<File> = ArrayList()
-
-    //List of mapChildDataGrouping
-    private val listChildGrouping: MutableList<MutableMap<String, String>> = ArrayList()
-
     private val listDataProps: MutableList<String>? = ArrayList()
     private val listNodesName: MutableList<File>? = ArrayList()
     private val listErrorPath: MutableList<ErrorSummaries>? = ArrayList()
 
-    //Init Parent Map
-    private val mapChildDataGroupings: MutableMap<Int, MutableList<MutableMap<String, String>>> = mutableMapOf()
-    private val mapDataGrouping: MutableMap<Int, MutableMap<Int, String>> = mutableMapOf()
-
-    //Init Child Map
-    private lateinit var mapChildGrouping: MutableMap<String, String>
     private lateinit var mapGrouping: MutableMap<Int, String>
 
     //Init Counter
@@ -122,17 +108,21 @@ class DeploymentHelperHTML(private val args: Array<String>?) : IConfig.StringBui
                 initHtmlStyle(projectName, configType)
                 initHeader(projectName, configType, lists)
 
-                for ((index, dirPaths) in lists.withIndex()) {
+                for (dirPaths in lists) {
+                    stbAppendStyle("div-open", "content")
                     listNodesName?.add(dirPaths)
+
                     val startParentPathing = Paths.get(dirPaths.path) //Start Listing using Relative PATH
-                    stbAppendStyle("h4", "Deployment <-- ${startParentPathing.fileName} -->")
+                    stbAppendStyle("h4", String.format(strDeploymentNameHTML, startParentPathing.fileName))
 
                     val nodeCollect = getDirectoryNode(startParentPathing.normalize())
                     nodeCollect?.let {
                         it.removeAt(0)
 
                         for ((no, nodeList) in it.withIndex()) {
+                            stbAppendStyle("div-open", "pj")
                             stbAppendStyle("table-open", null)
+
                             val headerName = mutableListOf<Any>(strNodeNo, strNodeName)
                             stbAppendTableHeader(null, headerName)
 
@@ -175,10 +165,9 @@ class DeploymentHelperHTML(private val args: Array<String>?) : IConfig.StringBui
                                                                     val statusTableData = mutableListOf<Any>("<p class=\"tableData\">$strStatus</p>", "<p class=\"passed\">$strPassed</p>")
                                                                     stbAppendTableData(null, statusTableData)
 
-                                                                    val notesTableData = mutableListOf<Any>("<p class=\"tableData\">Notes</p>", "$getLastDirName is Successfully Mapped &#9989;")
+                                                                    val notesTableData = mutableListOf<Any>("<p class=\"tableData\">$strNotes</p>", String.format(strDeploymentPassedHTML, getLastDirName))
                                                                     stbAppendTableData(null, notesTableData)
                                                                     stbAppendStyle("table-close", null)
-                                                                    stbAppend(null)
                                                                 }
                                                             }
                                                         }
@@ -189,58 +178,15 @@ class DeploymentHelperHTML(private val args: Array<String>?) : IConfig.StringBui
                                     }
                                 }
                             }
+
+                            stbAppendStyle("div-close", null)
+                            stbAppend(null)
                         }
                     }
-                    nodeCollect?.removeAt(0)
 
-                    try {
-                        val collect = getParentStreamList(startParentPathing) //get Deployment Path..-
-                        collect?.let { parentList ->
-                            for (configList in parentList) {
-                                val configCollect = getConfigStreamList(configList)
-
-                                if (listDataProps.isNullOrEmpty()) {
-                                    mapGrouping = mutableMapOf() //Init Map to Hold Values
-                                }
-
-                                configCollect?.let { childList ->
-                                    childList.forEachIndexed { index, lastConfigPath ->
-                                        if (checkConfigDirectory(lastConfigPath)) {
-                                            val getLastDirName = subStringDir(lastConfigPath)
-                                            if (!listDataProps.isNullOrEmpty()) {
-                                                mappingChildConfig(listDataProps, getLastDirName, lastConfigPath)
-                                            } else {
-                                                mappingConfig(index, lastConfigPath, mapGrouping)
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-
-                            if (!listDataProps.isNullOrEmpty()) {
-                                val listChildPath = listChildGrouping.toMutableList()
-
-                                //Inserting The Child Data Looping to Parent Mapping
-                                mapChildDataGroupings[index] = listChildPath
-
-                                //Reset the List Value to use for another loop
-                                listChildGrouping.clear()
-                            } else {
-                                //Inserting The Data Looping to Parent Mapping
-                                mapDataGrouping.put(index, mapGrouping)
-                            }
-                        }
-                    } catch (e: IOException) {
-                        println("Err:: ${e.message.toString()}")
-                    }
+                    stbAppendStyle("div-close", null)
+                    stbAppend("<hr>")
                 }
-
-                if (!listDataProps.isNullOrEmpty()) {
-                    populateChildData(mapChildDataGroupings, listNodesName)
-                } else {
-                    populateData(mapDataGrouping, listNodesName)
-                }
-
             } else {
                 println("No Directory Founds in ${this.nodeDirFiles}")
             }
@@ -276,10 +222,10 @@ class DeploymentHelperHTML(private val args: Array<String>?) : IConfig.StringBui
     private fun initHeader(projectName: String, configType: String, lists: Array<File>) {
         stbAppendStyle("div-open", "pj")
 
-        stbAppendStyle("h4", strConfigValidator)
+        stbAppendStyle("h4", strDeployValidator)
         stbAppendStyle("table-open", null)
 
-        val headerName = mutableListOf<Any>(strProjectName, strFlavorType, "Artifact Models")
+        val headerName = mutableListOf<Any>(strProjectName, strFlavorType, strDeployModel)
         stbAppendTableHeader(null, headerName)
 
         val data: MutableList<String>? = ArrayList()
@@ -295,9 +241,10 @@ class DeploymentHelperHTML(private val args: Array<String>?) : IConfig.StringBui
         stbAppendTableData("center", tableData)
 
         stbAppendStyle("table-close", null)
-        stbAppendStyle("h4", strConfigValidator)
+        stbAppendStyle("h4", strDeployValidator)
 
         stbAppendStyle("div-close", null)
+        stbAppend("<hr>")
     }
 
     private fun getParentStreamList(startParentPathing: Path): List<String>? {
@@ -338,143 +285,6 @@ class DeploymentHelperHTML(private val args: Array<String>?) : IConfig.StringBui
      * ex: ListDataProps => [mklik, ibank]
      * if path -> '../mklik_bca_inter1' contains words in 'mklik' => insert to machildGrouping as 'key: mklik' && 'value: ../mklik_bca_inter1'
      * */
-    private fun mappingChildConfig(listDataProps: MutableList<String>, lastDirName: String, lastConfigPath: String) {
-        for (value in listDataProps) {
-            println("Last Dir:: $lastDirName || Values:: $value || \nlastConfigPath:: $lastConfigPath")
-            if (lastDirName.contains(value)) {
-                println("'$lastDirName' Contains $value ? [TRUE][MAPPED to '$value'] (V)")
-                mapChildGrouping = mutableMapOf(value to lastConfigPath)
-                listChildGrouping.add(mapChildGrouping)
-            } else {
-                val checkerTest = valueChecker(projectName, value)
-                if (checkerTest != null) {
-                    print("is $lastDirName Contains $checkerTest? ")
-                    for (data in checkerTest) {
-                        if (lastDirName.contains(data)) {
-                            println("[TRUE][MAPPED to $value] (V)")
-
-                            mapChildGrouping = mutableMapOf(value to lastConfigPath)
-                            listChildGrouping.add(mapChildGrouping)
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private fun mappingConfig(index: Int, lastConfigPath: String, mapGrouping: MutableMap<Int, String>) {
-        mapGrouping[index] = lastConfigPath
-    }
-
-    private fun populateChildData(mapChildDataGroupings: MutableMap<Int, MutableList<MutableMap<String, String>>>, listNodesName: MutableList<File>?) {
-        if (!listNodesName.isNullOrEmpty()) {
-            println("Data Nodes Found! Populating Data Now...")
-
-            for ((parentIndex, dirPaths) in listNodesName.withIndex()) {
-                printListNode(parentIndex, dirPaths)
-
-                if (!mapChildDataGroupings.isNullOrEmpty()) {
-                    mapChildDataGroupings.forEach { (index, data) ->
-                        if (parentIndex == index) {
-                            var numbers = 1
-                            var keyNames: String? = null
-
-                            if (data.size < 2) {
-                                stbAppendStyle("h4", String.format(strDirFoundsHTML, data.size, "Directory"))
-                            } else {
-                                stbAppendStyle("h4", String.format(strDirFoundsHTML, data.size, "Directories"))
-                            }
-
-                            for (listData in data) {
-                                listData.forEach { (key, value) ->
-                                    when {
-                                        keyNames == null -> {
-                                            keyNames = key
-                                        }
-                                        keyNames != key -> {
-                                            numbers = 1
-                                            keyNames = null
-                                        }
-                                        else -> {
-                                            numbers++
-                                        }
-                                    }
-
-                                    //Add DIV
-                                    stbAppendStyle("div-open", "pj")
-                                    stbAppendStyle("p", String.format(strConfigNameHTML, numbers, key))
-
-                                    stbAppendStyle("table-open", null)
-
-                                    var setPath = value
-                                    if (setPath.contains("\\")) {
-                                        setPath = setPath.replace("\\", "/")
-                                    }
-
-                                    val lastIndexOf = setPath.lastIndexOf("/")
-                                    val pathLink = "<a href=\"$setPath\" target=\"_blank\">${setPath.substring(lastIndexOf + 1)}</a>"
-                                    val pathTableData = mutableListOf<Any>("<p class=\"tableData\">$strPathName</p>", pathLink)
-                                    stbAppendTableData(null, pathTableData)
-
-                                    val filePath: File? = File(value)
-                                    printListData(filePath, key)
-                                }
-                            }
-
-                            stbAppendStyle("div-close", null)
-                        }
-                    }
-                }
-            }
-        } else {
-            println("No Data Node Founds")
-        }
-    }
-
-    private fun populateData(mapData: MutableMap<Int, MutableMap<Int, String>>?, listNodesName: MutableList<File>?) {
-        listNodesName?.let { nodes ->
-            for ((parentIndex, dirPaths) in nodes.withIndex()) {
-                printListNode(parentIndex, dirPaths)
-
-                if (!mapData.isNullOrEmpty()) {
-                    mapData.forEach { (index, data) ->
-                        if (parentIndex == index) {
-                            if (data.size < 2) {
-                                stbAppendStyle("h4", String.format(strDirFoundsHTML, data.size, "Instance"))
-                            } else {
-                                stbAppendStyle("h4", String.format(strDirFoundsHTML, data.size, "Instance(s)"))
-                            }
-
-                            data.forEach { (key, value) ->
-                                //Add DIV
-                                stbAppendStyle("div-open", "pj")
-
-                                stbAppendStyle("p", String.format(strInstanceNameHTML, key + 1))
-                                stbAppendStyle("table-open", null)
-
-                                var setPath = value
-                                if (setPath.contains("\\")) {
-                                    setPath = setPath.replace("\\", "/")
-                                }
-
-                                val lastIndexOf = setPath.lastIndexOf("/")
-                                val pathLink = "<a href=\"$setPath\" target=\"_blank\">${setPath.substring(lastIndexOf + 1)}</a>"
-
-                                val pathTableData = mutableListOf<Any>("<p class=\"tableData\">$strPathName</p>", pathLink)
-                                stbAppendTableData(null, pathTableData)
-
-                                val filePath: File? = File(value)
-                                printListData(filePath, null)
-                            }
-                            stbAppendStyle("div-close", null)
-                        }
-                    }
-                } else {
-                    println("No Data Node Founds")
-                }
-            }
-        }
-    }
 
     private fun printListNode(parentIndex: Int, dirPaths: File) {
         stbAppend("<hr>")
@@ -487,169 +297,6 @@ class DeploymentHelperHTML(private val args: Array<String>?) : IConfig.StringBui
         val nodeNameTableData = mutableListOf<Any>((parentIndex + 1), "<mark><b>${dirPaths.name}</b></mark>")
         stbAppendTableData("center", nodeNameTableData)
         stbAppendStyle("table-close", null)
-    }
-
-    private fun printListData(filePath: File?, key: String?) {
-        filePath?.let {
-            val getItemList = filePath.listFiles()
-            if (getItemList != null && getItemList.isNotEmpty()) {
-                saveActualItems(getItemList)
-
-                saveExpectedItems(configFile, key)
-
-                //Comparing the Expected and Actual Properties File that has been Mapping via Jenkins..
-                compareData(filePath, listExpectedItems, listActualItems)
-            }
-        }
-
-        //**Reset the List of Expected and Actual
-        listExpectedItems.clear()
-        listActualItems.clear()
-        listActualFiles.clear()
-    }
-
-    private fun saveActualItems(itemList: Array<File>) {
-        for (item in itemList) {
-            listActualItems.add(item.name)
-
-            //Checking MD5 Files
-            listActualFiles.add(item.absoluteFile)
-            /*val data = checkSumHelper.generateMD5Code(item.path)
-            println("Data Name -> ${item.name}:: MD5 ->$data")*/
-        }
-    }
-
-    private fun saveExpectedItems(configFile: File?, groupingKey: String?) {
-        configFile?.let {
-            val envStream = FileInputStream(it) //Load Config Properties from Params
-            properties.load(envStream) //Load as Properties
-
-            val getPropertiesKey = properties.propertyNames() //Getting Key values from Properties
-            while (getPropertiesKey.hasMoreElements()) {
-                val keyValue = getPropertiesKey.nextElement().toString()
-                if (properties.getProperty(keyValue) == "true") {
-                    if (keyValue.contains("/") && groupingKey != null) {
-                        val indexed = keyValue.lastIndexOf("/")
-                        val firstKeyValue = keyValue.substring(0, indexed)
-                        val lastKeyValue = keyValue.substring(indexed + 1)
-
-                        if (firstKeyValue == groupingKey) {
-                            listExpectedItems.add(lastKeyValue)
-                        }
-                    } else {
-                        listExpectedItems.add(keyValue)
-                    }
-                }
-            }
-        }
-    }
-
-    private fun compareData(listFile: File?, listExpectedItems: MutableList<String>?, listActualItems: MutableList<String>?) {
-        if (listExpectedItems != null && listActualItems != null) {
-            isContentEquals(listExpectedItems, listActualItems).also {
-                val outputMessage: String
-                var notesOutputMessage: String? = null
-                var expectedOutputMessage: String? = null
-
-                totalConfigData += 1 //Count How Many Files Are Compared
-
-                val expectedSize: Int = listExpectedItems.size
-                val actualSize: Int = listActualItems.size
-
-                if (it) {
-                    passedConfigData += 1 //If Passed, Add Counter
-                    val statusTableData = mutableListOf<Any>("<p class=\"tableData\">$strStatus</p>", "<p class=\"passed\">$strPassed</p>")
-                    stbAppendTableData(null, statusTableData)
-                    stbAppendStyle("table-close", null)
-
-                    outputMessage = if (actualSize < 2) {
-                        String.format(strConfigPassedHTML, expectedSize, "Data", "is")
-                    } else {
-                        String.format(strConfigPassedHTML, expectedSize, "Data(s)", "are")
-                    }
-
-                } else {
-                    failedConfigData += 1 //If Failed Add Counter
-                    val statusTableData = mutableListOf<Any>("<p class=\"tableData\">$strStatus</p>", "<p class=\"failed\">$strFailed</p>")
-                    stbAppendTableData(null, statusTableData)
-                    stbAppendStyle("table-close", null)
-
-                    outputMessage = if (expectedSize > actualSize) {
-                        val differenceSize = expectedSize - actualSize
-                        if (differenceSize < 2) {
-                            String.format(strConfigErrorNotMappingHTML, 1, "is")
-                        } else {
-                            String.format(strConfigErrorNotMappingHTML, differenceSize, "are")
-                        }
-                    } else {
-                        val differenceSize = actualSize - expectedSize
-                        if (differenceSize < 2) {
-                            String.format(strConfigErrorNotBasedHTML, 1, "is")
-                        } else {
-                            String.format(strConfigErrorNotBasedHTML, differenceSize, "are")
-                        }
-                    }
-
-                    notesOutputMessage = if (expectedSize < 2) {
-                        String.format(strConfigErrorNotesHTML, "$expectedSize Item")
-                    } else {
-                        String.format(strConfigErrorNotesHTML, "$expectedSize Item(s)")
-                    }
-
-                    notesOutputMessage += if (actualSize < 2) {
-                        String.format(strConfigErrorNotesActualHTML, "$actualSize Item")
-                    } else {
-                        String.format(strConfigErrorNotesActualHTML, "$actualSize Item(s)")
-                    }
-
-                    expectedOutputMessage = String.format(strConfigErrorExpectingHTML, listExpectedItems, listActualItems)
-
-                    val listException = listExpectedItems.toMutableList()
-                    val listActual = listActualItems.toMutableList()
-                    val errorSummaries = ErrorSummaries(listFile, listException, listActual)
-
-                    listErrorPath?.add(errorSummaries)
-                }
-
-                stbAppend(null)
-
-                //Listing Items
-                if (actualSize < 2) {
-                    stbAppendStyle("p", String.format(strListItemHTML, "$actualSize Data"))
-                } else {
-                    stbAppendStyle("p", String.format(strListItemHTML, "$actualSize Data(s)"))
-                }
-
-                createListFileTable(listActualFiles)
-
-                stbAppendStyle("p", outputMessage)
-                if (!notesOutputMessage.isNullOrEmpty()) stbAppendStyle("p", notesOutputMessage)
-                if (!expectedOutputMessage.isNullOrEmpty()) stbAppendStyle("p", expectedOutputMessage)
-            }
-
-            stbAppendStyle("div-close", null)
-            stbAppend(null)
-        }
-    }
-
-    private fun createListFileTable(listActualFiles: MutableList<File>?) {
-        listActualFiles?.let {
-            //Creating Table
-            stbAppendStyle("table-open", null)
-            val nameTableHeader = mutableListOf<Any>(strNo, strName, strSize, strMD5Code)
-            stbAppendTableHeader(null, nameTableHeader)
-
-            for ((index, data) in it.withIndex()) {
-                val indexData = index + 1
-                val fileName = data.name
-                val sizeOfFile = FileUtils.byteCountToDisplaySize(data.length())
-                val generateMD5 = checkSumHelper.generateMD5Code(data.absolutePath)
-
-                val listItemTableData = mutableListOf<Any>(indexData, "<p class=\"listData\">$fileName</p>", sizeOfFile, generateMD5.toString())
-                stbAppendTableData("center", listItemTableData)
-            }
-            stbAppendStyle("table-close", null)
-        }
     }
 
     private fun summaryPercentage(totalValue: Int, passedValue: Int, failedValue: Int) {

@@ -4,9 +4,11 @@ const val strStrips = "-----------------------------------"
 const val strAsterisks = "***************"
 
 const val strConfigValidator = "$strAsterisks CONFIG VALIDATOR $strAsterisks"
+const val strDeployValidator = "$strAsterisks DEPLOY VALIDATOR $strAsterisks"
 const val strProjectName = "Project Name"
 const val strFlavorType = "Flavor-Type"
 const val strNodeQuantity = "Node Quantity"
+const val strDeployModel = "Deployment Models"
 
 const val strNodeNo = "Node No."
 const val strNodeName = "Node Name"
@@ -15,12 +17,14 @@ const val strDirFoundsHTML = "%1s %2s Found!<br>$strStrips"
 
 const val strConfigNameHTML = "&#8251; %1s <u>Config</u> &#8658; <b>%2s</b>"
 const val strInstanceNameHTML = "<b>&#8656; &#8251;%1s Instance &#8658;</b>"
+const val strDeploymentNameHTML = "<b>&#8656; <u style=\"color:blue\">%1s</u> Deployment &#8658;</b><br>$strStrips"
 const val strPathName = "Path Name"
 
 const val strNo = "No"
 const val strName = "Name"
 const val strSize = "Size"
 const val strMD5Code = "MD5 Code"
+const val strNotes = "&#8258;<u>NOTES</u>"
 
 const val strErrorPathName = "Error Path Name"
 const val strExpectedHTML = "Expected &#9989;"
@@ -32,6 +36,7 @@ const val strFailed = "FAILED"
 const val strErrorList = "ERROR LIST"
 
 const val strConfigPassedHTML = "&#8258;<u>NOTES</u>:: <b>%1s %2s</b> from Config (.txt) %3s <b>Successfully Mapped</b> to Selected Directories &#9989;"
+const val strDeploymentPassedHTML = "<b>%1s</b> is <b>Successfully Mapped</b> to Selected Directories &#9989;"
 
 const val strConfigErrorNotMappingHTML = "*<b style=\"color:red\">ERROR</b> &#8658; There's <b>%1s Data from Config</b> (.txt) That %2s <b>NOT Mapping</b> to Selected Directories &#10060;"
 const val strConfigErrorNotBasedHTML = "*<b style=\"color:red\">ERROR</b> &#8658; There's <b>%1s Data</b> That %2s <b>NOT Based on the Config</b> (.txt) Mapped to Selected Directories &#10060;"
