@@ -61,6 +61,15 @@ fun checkConfigDirectory(value: String): Boolean {
     return value.contains("/") || value.contains("\\")
 }
 
+fun subStringDir(lastConfigPath: String): String {
+    var mLastConfigPath = lastConfigPath
+    if (mLastConfigPath.contains("\\")) {
+        mLastConfigPath = mLastConfigPath.replace("\\", "/")
+    }
+    val indexing = mLastConfigPath.lastIndexOf("/")
+    return mLastConfigPath.substring(indexing + 1) //Getting the Last Dir Name -> ex: from ~> C\TestPath\Test\Path || to ~> Path
+}
+
 fun valueChecker(projectName: String, value: String): List<String>? {
     var listDir: List<String>? = null
 
