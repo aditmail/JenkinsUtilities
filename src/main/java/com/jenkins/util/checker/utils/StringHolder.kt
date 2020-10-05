@@ -9,6 +9,7 @@ const val strProjectName = "Project Name"
 const val strFlavorType = "Flavor-Type"
 const val strNodeQuantity = "Node Quantity"
 const val strDeployModel = "Deployment Models"
+const val strGeneratedAt = "&#8258; Generated At: <b><mark>%1s</mark></b>"
 
 const val strNodeNo = "Node No."
 const val strNodeName = "Node Name"

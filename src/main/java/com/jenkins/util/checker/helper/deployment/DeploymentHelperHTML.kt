@@ -11,6 +11,8 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.text.DecimalFormat
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import java.util.*
 import java.util.stream.Collectors
 import java.util.stream.Stream
@@ -25,6 +27,7 @@ class DeploymentHelperHTML(private val args: Array<String>?) : IConfig.StringBui
 
     //Init Helper
     private lateinit var projectName: String
+    private val dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
 
     private lateinit var stringBuilder: StringBuilder
     private val properties = Properties()
@@ -239,8 +242,10 @@ class DeploymentHelperHTML(private val args: Array<String>?) : IConfig.StringBui
         )
 
         stbAppendTableData("center", tableData)
-
         stbAppendStyle("table-close", null)
+
+        val dateNow = LocalDateTime.now()
+        stbAppendStyle("p", String.format(strGeneratedAt, dateFormatter.format(dateNow)))
         stbAppendStyle("h4", strDeployValidator)
 
         stbAppendStyle("div-close", null)
