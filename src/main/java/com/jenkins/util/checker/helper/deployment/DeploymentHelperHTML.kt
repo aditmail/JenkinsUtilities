@@ -39,7 +39,8 @@ class DeploymentHelperHTML(private val args: Array<String>?) : IConfig.StringBui
     private val listNodesName: MutableList<File>? = ArrayList()
     private val listErrorPath: MutableList<ErrorSummaries>? = ArrayList()
 
-    private lateinit var mapGrouping: MutableMap<Int, String>
+    private lateinit var mapGrouping: MutableMap<String, File>
+    private var listMapGrouping: MutableList<MutableMap<String, File>> = ArrayList()
 
     //Init Counter
     private var totalConfigData = 0
@@ -112,11 +113,14 @@ class DeploymentHelperHTML(private val args: Array<String>?) : IConfig.StringBui
                 initHeader(projectName, configType, lists)
 
                 for (dirPaths in lists) {
+                    println("#DirPath -> $dirPaths")
+
                     stbAppendStyle("div-open", "content")
                     listNodesName?.add(dirPaths)
 
                     val startParentPathing = Paths.get(dirPaths.path) //Start Listing using Relative PATH
-                    stbAppendStyle("h4", String.format(strDeploymentNameHTML, startParentPathing.fileName))
+                    val deploymentModels = startParentPathing.fileName.toString()
+                    stbAppendStyle("h4", String.format(strDeploymentNameHTML, deploymentModels))
 
                     val nodeCollect = getDirectoryNode(startParentPathing.normalize())
                     nodeCollect?.let {
@@ -136,15 +140,65 @@ class DeploymentHelperHTML(private val args: Array<String>?) : IConfig.StringBui
                             val collect = getParentStreamList(Paths.get(nodeList))
                             collect?.let { parentList ->
                                 for (configList in parentList) {
-                                    val deployCollect = getConfigStreamList(configList)
-                                    if (listDataProps.isNullOrEmpty()) {
-                                        mapGrouping = mutableMapOf() //Init Map to Hold Values
-                                    }
+                                    /** New Models Here */
+                                    deployPropFile.let { deploy ->
+                                        val envStream = FileInputStream(deploy)
+                                        deploymentProperties.load(envStream)
 
-                                    deployCollect?.let { childList ->
+                                        for (keys in deploymentProperties.stringPropertyNames()) {
+                                            if (deploymentProperties.getProperty(keys) == deploymentModels) {
+                                                val splitKeys = keys.split("/")
+                                                val getLocationArtifact = splitKeys[0]
+                                                val getNameArtifact = splitKeys[1]
+
+                                                getConfigStream(configList)?.let { path ->
+                                                    val getFilePath = File(path).parentFile
+                                                    val getFileName = File(path).name
+                                                    val getPathing = Paths.get(path)
+
+                                                    getFilePath.listFiles().let {
+                                                        println("Data -> ${it.toList()}")
+                                                    }
+
+                                                    stbAppend(null)
+                                                    stbAppendStyle("table-open", null)
+
+                                                    val pathLink = "<a href=\"$getFilePath\" target=\"_blank\">${Paths.get(getFilePath.toString()).subpath(getPathing.nameCount - 3, getPathing.nameCount - 1)}</a>"
+                                                    val pathTableData = mutableListOf<Any>("<p class=\"tableData\">$strPathName</p>", pathLink)
+                                                    stbAppendTableData(null, pathTableData)
+
+                                                    if (getFilePath.toString().contains(getLocationArtifact)) {
+                                                        getFilePath.listFiles()?.let { files ->
+                                                            files.forEachIndexed { index, file ->
+                                                                if (file.name == getNameArtifact) {
+                                                                    val statusTableData = mutableListOf<Any>("<p class=\"tableData\">$strStatus</p>", "<p class=\"passed\">$strPassed</p>")
+                                                                    stbAppendTableData(null, statusTableData)
+
+                                                                    val notesTableData = mutableListOf<Any>("<p class=\"tableData\">$strNotes</p>", String.format(strDeploymentPassedHTML, file.name))
+                                                                    stbAppendTableData(null, notesTableData)
+                                                                    stbAppendStyle("table-close", null)
+
+                                                                    println("FilesFound --> $file")
+                                                                } else {
+                                                                    println("#Files Not Found For -> $file")
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                    /** New Models Here */
+
+                                    /*deployCollect?.let { childList ->
                                         childList.forEachIndexed { index, lastConfigPath ->
+                                            println("#$index Last Config -> $lastConfigPath")
+
                                             val filePath = File(lastConfigPath).parentFile
                                             val path = Paths.get(filePath.toString())
+
+                                            println("#$index File Path -> $filePath")
 
                                             stbAppend(null)
                                             stbAppendStyle("table-open", null)
@@ -178,9 +232,11 @@ class DeploymentHelperHTML(private val args: Array<String>?) : IConfig.StringBui
                                                 }
                                             }
                                         }
-                                    }
+                                    }*/
                                 }
                             }
+
+                            populateData(listMapGrouping, deployPropFile)
 
                             stbAppendStyle("div-close", null)
                             stbAppend(null)
@@ -268,6 +324,14 @@ class DeploymentHelperHTML(private val args: Array<String>?) : IConfig.StringBui
                 .collect(Collectors.toList())
     }
 
+    private fun getConfigStream(configPath: String): String? {
+        val configStream: Stream<Path> = Files.walk(Paths.get(configPath), Int.MAX_VALUE) //Discovering the configPath with Min value, jumping to Instance dir
+        return configStream.map(java.lang.String::valueOf)
+                .filter { it.endsWith(".war") or it.endsWith(".jar") or it.endsWith(".ear") }
+                .findFirst()
+                .get()
+    }
+
     private fun getDirectoryNode(configPath: Path): MutableList<String>? {
         val configStream: Stream<Path> = Files.walk(configPath, 1) //Discovering the configPath with Min value, jumping to Instance dir
         return configStream.map(java.lang.String::valueOf)
@@ -282,6 +346,68 @@ class DeploymentHelperHTML(private val args: Array<String>?) : IConfig.StringBui
         }
         val indexing = mLastConfigPath.lastIndexOf("/")
         return mLastConfigPath.substring(indexing + 1) //Getting the Last Dir Name -> ex: from ~> C\TestPath\Test\Path || to ~> Path
+    }
+
+    private fun populateData(listMapGrouping: MutableList<MutableMap<String, File>>?, deployPropFile: File) {
+        listMapGrouping?.let { listMap ->
+            listMap.forEachIndexed { index, mutableMap ->
+                val envStream = FileInputStream(deployPropFile)
+                deploymentProperties.load(envStream)
+
+                for (deployPropKeys in deploymentProperties.stringPropertyNames()) {
+                    println("Keys:: $mutableMap")
+                    mutableMap.forEach { (keys, data) ->
+                        println("PropKeys: $deployPropKeys")
+                        if (deploymentProperties.getProperty(deployPropKeys) == keys) {
+                            val splitKeys = deployPropKeys.split("/")
+                            val artifactPath = splitKeys[0]
+                            val artifactName = splitKeys[1]
+
+                            if (data.path.contains(artifactPath)) {
+                                data.listFiles()?.let { files ->
+                                    files.forEach { file ->
+                                        println("Filename -> ${file.name} || artifact:: $artifactName")
+                                        if (file.name == artifactName) {
+                                            println("Data Found with Name:: ${file.name}")
+                                        } else {
+                                            println("Data NOT Found with Name:: ${file.name}")
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            /*listMap.forEachIndexed { index, mutableMap ->
+                println("Keys:: $mutableMap")
+                mutableMap.forEach { (keys, data) ->
+                    for (deployPropKeys in deploymentProperties.stringPropertyNames()) {
+                        println("PropKeys: $deployPropKeys")
+                        if (deploymentProperties.getProperty(deployPropKeys) == keys) {
+                            val splitKeys = deployPropKeys.split("/")
+                            val artifactPath = splitKeys[0]
+                            val artifactName = splitKeys[1]
+
+                            if (data.path.contains(artifactPath)) {
+                                data.listFiles()?.let { files ->
+                                    files.forEach { file ->
+                                        println("Filename -> ${file.name} || artifact:: $artifactName")
+                                        if (file.name == artifactName) {
+                                            println("Data Found with Name:: ${file.name}")
+                                        } else {
+                                            println("Data NOT Found with Name:: ${file.name}")
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }*/
+
+        }
     }
 
     /** Sorting Process..
