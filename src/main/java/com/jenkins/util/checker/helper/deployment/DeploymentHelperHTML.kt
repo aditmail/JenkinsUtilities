@@ -68,7 +68,7 @@ class DeploymentHelperHTML(private val args: Array<String>?) : IConfig.StringBui
         }
     }
 
-    fun initFiles(projectName: String, configType: String, nodesDirPath: String, configPath: String, destinationPath: String) {
+    /*fun initFiles(projectName: String, configType: String, nodesDirPath: String, configPath: String, destinationPath: String) {
         this.projectName = projectName
 
         //Init Config File
@@ -83,7 +83,7 @@ class DeploymentHelperHTML(private val args: Array<String>?) : IConfig.StringBui
                 The Deployment Validator is Cancelled.
             """.trimMargin())
         }
-    }
+    }*/
 
     private fun populateProperties(destinationPath: String?) {
         configFile?.let { config ->

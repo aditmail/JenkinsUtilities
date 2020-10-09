@@ -107,7 +107,9 @@ fun valueChecker(projectName: String, value: String): List<String>? {
 fun deploymentConfig(projectName: String, propName: String, deploymentProperties: Properties) {
     //projectName -> KBI
     //propName -> IBank
-    val filename = getFileFromRes("DeployMapper.json")
+
+    /** For Testing */
+    /*val filename = getFileFromRes("DeployMapper.json")
     filename?.let {
         val listMapping = object : TypeToken<DeploymentMappers>() {}.type
         val bufferedReader = BufferedReader(FileReader(it))
@@ -128,7 +130,30 @@ fun deploymentConfig(projectName: String, propName: String, deploymentProperties
                 }
             }
         }
+    }*/
+
+    /** For Use */
+    val filename = getFileFromResources("DeployMapper.json")
+    filename?.let {
+        val listMapping = object : TypeToken<DeploymentMappers>() {}.type
+        val dataGSON = Gson().fromJson<DeploymentMappers>(it, listMapping)
+        for (data in dataGSON.deploy_mapper) {
+            if (data.project_name == projectName) {
+                for (deploymentList in data.deployment_dir_name) {
+                    if (deploymentList.prop_name == propName) {
+                        val dirPathName = deploymentList.dir_path_name
+                        for (models in deploymentList.models) {
+                            val applicationModel = models.application
+                            for (listArtifact in models.artifact) {
+                                deploymentProperties.setProperty("$dirPathName/$listArtifact", applicationModel)
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
+
 }
 
 fun getParentStreamList(startParentPathing: Path?, models: Int): List<String>? {

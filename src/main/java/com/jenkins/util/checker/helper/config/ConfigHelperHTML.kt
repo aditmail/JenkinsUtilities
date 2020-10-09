@@ -55,7 +55,7 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
     private var passedConfigData = 0
     private var failedConfigData = 0
 
-    fun initFiles(projectName: String, configType: String, nodesDirPath: String, configPath: String, destinationPath: String) {
+    /*fun initFiles(projectName: String, configType: String, nodesDirPath: String, configPath: String, destinationPath: String) {
         this.projectName = projectName
 
         //Init FileOutput
@@ -79,9 +79,9 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
 
         //Checking Data..
         checkMappings(nodeDirFiles, projectName, configType)
-    }
+    }*/
 
-    /*fun initFiles() {
+    fun initFiles() {
         if (args?.size == 0 || args?.size != 4) {
             println(strInputParameters)
             println(strInputFirstParams)
@@ -113,7 +113,7 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
             //Checking Data..
             checkMappings(nodeDirFiles, projectName, configType)
         }
-    }*/
+    }
 
     private fun checkMappings(nodeDirFiles: File?, projectName: String, configType: String) {
         nodeDirFiles?.let { data ->
