@@ -18,6 +18,7 @@ import java.util.stream.Collectors
 import java.util.stream.Stream
 import kotlin.collections.ArrayList
 
+
 class DeploymentHelperHTML(private val args: Array<String>?) : IConfig.StringBuilders {
 
     //Data Files
@@ -44,6 +45,34 @@ class DeploymentHelperHTML(private val args: Array<String>?) : IConfig.StringBui
     private var passedConfigData = 0
     private var failedConfigData = 0
 
+    fun initFiles() {
+        if (args?.size == 0 || args?.size != 4) {
+            println("Please Input The Parameters That's are Needed")
+            println("1st Params --> Project-Name (ex: klikBCAIndividu)")
+            println("2nd Params --> Config-Type (ex: Pilot-APP)")
+            println("3rd Params --> Nodes-Dir-Path (ex: ../KBI/PILOT/CONFIG/APP")
+            println("4th Params --> Config_Path (ex: ..KBI/var/changes-config-app.txt")
+        } else {
+            this.projectName = args[0].trim()
+            val configType = args[1].trim()
+            val nodeDir = args[2].trim()
+            val configPath = args[3].trim()
+
+            //Init Config File
+            configFile = getFile(configPath)
+            populateProperties(null) //Read the txt contains Properties Data..
+
+            println("ListDataProps:: $listDataProps (${listDataProps?.size} Data)")
+            if (!listDataProps.isNullOrEmpty()) {
+                startValidating(configType, nodeDir, null)
+            } else {
+                println("""All ${configFile?.name} Properties Contains False Value
+                The Deployment Validator is Cancelled.
+            """.trimMargin())
+            }
+        }
+    }
+
     fun initFiles(projectName: String, configType: String, nodesDirPath: String, configPath: String, destinationPath: String) {
         this.projectName = projectName
 
@@ -61,13 +90,20 @@ class DeploymentHelperHTML(private val args: Array<String>?) : IConfig.StringBui
         }
     }
 
-    private fun populateProperties(destinationPath: String) {
+    private fun populateProperties(destinationPath: String?) {
         configFile?.let { config ->
-            deployPropFile = File(destinationPath, "DeployProp.properties")
+            deployPropFile = if (destinationPath.isNullOrEmpty()) {
+                File("var/", "DeployProp.properties")
+            } else {
+                File(destinationPath, "DeployProp.properties")
+                //createTempFile("DeployProp_", ".properties", File(destinationPath))
+            }
+
             if (!deployPropFile.exists()) {
                 deployPropFile.createNewFile()
             }
 
+            println("Path -> ${deployPropFile.absolutePath}")
             val envStream = FileInputStream(config) //Load Config Properties from Params
             properties.load(envStream) //Load as Properties
             for (keys in properties.stringPropertyNames()) {
@@ -76,14 +112,20 @@ class DeploymentHelperHTML(private val args: Array<String>?) : IConfig.StringBui
                     listDataProps?.add(keys)
                 }
             }
+
             deploymentProperties.store(FileOutputStream(deployPropFile), null)
         }
     }
 
-    private fun startValidating(configType: String, nodesDirPath: String, destinationPath: String) {
+    private fun startValidating(configType: String, nodesDirPath: String, destinationPath: String?) {
 
         //Init FileOutput
-        fileOutput = File("$destinationPath/outputConfigs_${configType}.html")
+        fileOutput = if (destinationPath.isNullOrEmpty()) {
+            File("outputDeployments_${configType}.html")
+        } else {
+            File("$destinationPath/outputDeployments_${configType}.html")
+        }
+
         if (!fileOutput.exists()) {
             fileOutput.createNewFile()
             println("Creating File:: $fileOutput")
@@ -214,6 +256,17 @@ class DeploymentHelperHTML(private val args: Array<String>?) : IConfig.StringBui
 
             summaryPercentage(totalConfigData, passedConfigData, failedConfigData)
             errorSummaries(listErrorPath)
+
+            try {
+                val deleteResult = deployPropFile.delete()
+                if (deleteResult) {
+                    println("Temp Data is Deleted! ${deployPropFile.name}")
+                } else {
+                    println("Unable to Deleted ${deployPropFile.name}")
+                }
+            } catch (ex: Exception) {
+                println("Ex: ${ex.message}")
+            }
 
             stbAppendStyle("h4", strReportSummaries)
             stbAppendStyle("div-close", null)
