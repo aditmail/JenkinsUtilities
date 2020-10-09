@@ -1,6 +1,6 @@
 package com.jenkins.util.checker.helper.deployment
 
-import com.jenkins.util.checker.models.ErrorSummaries
+import com.jenkins.util.checker.models.ErrorDeployment
 import com.jenkins.util.checker.utils.*
 import java.io.File
 import java.io.FileInputStream
@@ -37,10 +37,7 @@ class DeploymentHelperHTML(private val args: Array<String>?) : IConfig.StringBui
 
     private val listDataProps: MutableList<String>? = ArrayList()
     private val listNodesName: MutableList<File>? = ArrayList()
-    private val listErrorPath: MutableList<ErrorSummaries>? = ArrayList()
-
-    private lateinit var mapGrouping: MutableMap<String, File>
-    private var listMapGrouping: MutableList<MutableMap<String, File>> = ArrayList()
+    private val listErrorPath: MutableList<ErrorDeployment>? = ArrayList()
 
     //Init Counter
     private var totalConfigData = 0
@@ -54,16 +51,14 @@ class DeploymentHelperHTML(private val args: Array<String>?) : IConfig.StringBui
         configFile = getFile(configPath)
         populateProperties(destinationPath) //Read the txt contains Properties Data..
 
-        println("ListDataProps:: $listDataProps || configFile:: $configFile")
-        /*if (!listDataProps.isNullOrEmpty()) {
+        println("ListDataProps:: $listDataProps (${listDataProps?.size} Data)")
+        if (!listDataProps.isNullOrEmpty()) {
             startValidating(configType, nodesDirPath, destinationPath)
         } else {
             println("""All ${configFile?.name} Properties Contains False Value
                 The Deployment Validator is Cancelled.
             """.trimMargin())
-        }*/
-
-        startValidating(configType, nodesDirPath, destinationPath)
+        }
     }
 
     private fun populateProperties(destinationPath: String) {
@@ -140,103 +135,70 @@ class DeploymentHelperHTML(private val args: Array<String>?) : IConfig.StringBui
                             val collect = getParentStreamList(Paths.get(nodeList))
                             collect?.let { parentList ->
                                 for (configList in parentList) {
-                                    /** New Models Here */
+
+                                    /** NEW MODEL - Concept */
                                     deployPropFile.let { deploy ->
                                         val envStream = FileInputStream(deploy)
                                         deploymentProperties.load(envStream)
 
-                                        for (keys in deploymentProperties.stringPropertyNames()) {
-                                            if (deploymentProperties.getProperty(keys) == deploymentModels) {
-                                                val splitKeys = keys.split("/")
-                                                val getLocationArtifact = splitKeys[0]
-                                                val getNameArtifact = splitKeys[1]
+                                        getConfigStreamList(configList)?.let { listPath ->
+                                            listPath.forEach { path ->
+                                                val getParentFile = File(path).parentFile
+                                                val getParentPath = Paths.get(getParentFile.toString())
 
-                                                getConfigStream(configList)?.let { path ->
-                                                    val getFilePath = File(path).parentFile
-                                                    val getFileName = File(path).name
-                                                    val getPathing = Paths.get(path)
+                                                val getSubPath = getParentPath.subpath(getParentPath.nameCount - 2, getParentPath.nameCount - 1)
+                                                val getFileName = File(path).name
 
-                                                    getFilePath.listFiles().let {
-                                                        println("Data -> ${it.toList()}")
-                                                    }
+                                                for (keys in deploymentProperties.stringPropertyNames()) {
+                                                    if (deploymentProperties.getProperty(keys) == deploymentModels) {
+                                                        val splitKeys = keys.split("/")
+                                                        val getLocationArtifact = splitKeys[0]
+                                                        val getNameArtifact = splitKeys[1]
 
-                                                    stbAppend(null)
-                                                    stbAppendStyle("table-open", null)
+                                                        print("GetFilePath: $getSubPath --> isContains $getLocationArtifact? ")
+                                                        if (getSubPath.toString().contains(getLocationArtifact)) {
 
-                                                    val pathLink = "<a href=\"$getFilePath\" target=\"_blank\">${Paths.get(getFilePath.toString()).subpath(getPathing.nameCount - 3, getPathing.nameCount - 1)}</a>"
-                                                    val pathTableData = mutableListOf<Any>("<p class=\"tableData\">$strPathName</p>", pathLink)
-                                                    stbAppendTableData(null, pathTableData)
+                                                            totalConfigData += 1 //Count How Many Files Are Compared
+                                                            println("[TRUE]")
 
-                                                    if (getFilePath.toString().contains(getLocationArtifact)) {
-                                                        getFilePath.listFiles()?.let { files ->
-                                                            files.forEachIndexed { index, file ->
-                                                                if (file.name == getNameArtifact) {
-                                                                    val statusTableData = mutableListOf<Any>("<p class=\"tableData\">$strStatus</p>", "<p class=\"passed\">$strPassed</p>")
-                                                                    stbAppendTableData(null, statusTableData)
+                                                            stbAppend(null)
+                                                            stbAppendStyle("table-open", null)
 
-                                                                    val notesTableData = mutableListOf<Any>("<p class=\"tableData\">$strNotes</p>", String.format(strDeploymentPassedHTML, file.name))
-                                                                    stbAppendTableData(null, notesTableData)
-                                                                    stbAppendStyle("table-close", null)
+                                                            val pathLink = "<a href=\"$getParentFile\" target=\"_blank\">${getSubPath}</a>"
+                                                            val pathTableData = mutableListOf<Any>("<p class=\"tableData\">$strPathName</p>", pathLink)
 
-                                                                    println("FilesFound --> $file")
-                                                                } else {
-                                                                    println("#Files Not Found For -> $file")
-                                                                }
+                                                            stbAppendTableData(null, pathTableData)
+                                                            if (getNameArtifact == getFileName) {
+                                                                passedConfigData += 1 //If Passed, Add Counter
+
+                                                                val statusTableData = mutableListOf<Any>("<p class=\"tableData\">$strStatus</p>", "<p class=\"passed\">$strPassed</p>")
+                                                                stbAppendTableData(null, statusTableData)
+
+                                                                val notesTableData = mutableListOf<Any>("<p class=\"tableData\">$strNotes</p>", String.format(strDeploymentPassedHTML, getFileName))
+                                                                stbAppendTableData(null, notesTableData)
+                                                                stbAppendStyle("table-close", null)
+                                                            } else {
+                                                                failedConfigData += 1 //If Failed Add Counter
+                                                                val errorDeployment = ErrorDeployment(deploymentModels, getParentFile, getSubPath, getFileName)
+                                                                listErrorPath?.add(errorDeployment)
+
+                                                                val statusTableData = mutableListOf<Any>("<p class=\"tableData\">$strStatus</p>", "<p class=\"failed\">$strFailed</p>")
+                                                                stbAppendTableData(null, statusTableData)
+
+                                                                val notesTableData = mutableListOf<Any>("<p class=\"tableData\">$strNotes</p>", String.format(strDeploymentFailedHTML, getFileName))
+                                                                stbAppendTableData(null, notesTableData)
+                                                                stbAppendStyle("table-close", null)
                                                             }
+                                                        } else {
+                                                            println("[FALSE]")
                                                         }
                                                     }
                                                 }
                                             }
                                         }
                                     }
-                                    /** New Models Here */
-
-                                    /*deployCollect?.let { childList ->
-                                        childList.forEachIndexed { index, lastConfigPath ->
-                                            println("#$index Last Config -> $lastConfigPath")
-
-                                            val filePath = File(lastConfigPath).parentFile
-                                            val path = Paths.get(filePath.toString())
-
-                                            println("#$index File Path -> $filePath")
-
-                                            stbAppend(null)
-                                            stbAppendStyle("table-open", null)
-
-                                            val pathLink = "<a href=\"$filePath\" target=\"_blank\">${Paths.get(filePath.toString()).subpath(path.nameCount - 2, path.nameCount - 1)}</a>"
-                                            val pathTableData = mutableListOf<Any>("<p class=\"tableData\">$strPathName</p>", pathLink)
-                                            stbAppendTableData(null, pathTableData)
-
-                                            if (checkConfigDirectory(lastConfigPath)) {
-                                                val getLastDirName = subStringDir(lastConfigPath)
-                                                deployPropFile.let { deploy ->
-                                                    val envStream = FileInputStream(deploy)
-                                                    deploymentProperties.load(envStream)
-
-                                                    for (keys in deploymentProperties.stringPropertyNames()) {
-                                                        if (deploymentProperties.getProperty(keys) == startParentPathing.fileName.toString()) {
-                                                            val splitKeys = keys.split("/")
-
-                                                            if (lastConfigPath.contains(splitKeys[0])) {
-                                                                if (getLastDirName == splitKeys[1]) {
-                                                                    val statusTableData = mutableListOf<Any>("<p class=\"tableData\">$strStatus</p>", "<p class=\"passed\">$strPassed</p>")
-                                                                    stbAppendTableData(null, statusTableData)
-
-                                                                    val notesTableData = mutableListOf<Any>("<p class=\"tableData\">$strNotes</p>", String.format(strDeploymentPassedHTML, getLastDirName))
-                                                                    stbAppendTableData(null, notesTableData)
-                                                                    stbAppendStyle("table-close", null)
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }*/
                                 }
                             }
-
-                            populateData(listMapGrouping, deployPropFile)
 
                             stbAppendStyle("div-close", null)
                             stbAppend(null)
@@ -289,8 +251,8 @@ class DeploymentHelperHTML(private val args: Array<String>?) : IConfig.StringBui
 
         val data: MutableList<String>? = ArrayList()
         lists.asList().forEach { data?.add(it.name) }
+        println("Models Data:: $data")
 
-        println("data:: $data")
         val tableData = mutableListOf<Any>(
                 "<p class=\"listData\">$projectName</p>",
                 "<mark><b>$configType</b></mark>",
@@ -348,88 +310,6 @@ class DeploymentHelperHTML(private val args: Array<String>?) : IConfig.StringBui
         return mLastConfigPath.substring(indexing + 1) //Getting the Last Dir Name -> ex: from ~> C\TestPath\Test\Path || to ~> Path
     }
 
-    private fun populateData(listMapGrouping: MutableList<MutableMap<String, File>>?, deployPropFile: File) {
-        listMapGrouping?.let { listMap ->
-            listMap.forEachIndexed { index, mutableMap ->
-                val envStream = FileInputStream(deployPropFile)
-                deploymentProperties.load(envStream)
-
-                for (deployPropKeys in deploymentProperties.stringPropertyNames()) {
-                    println("Keys:: $mutableMap")
-                    mutableMap.forEach { (keys, data) ->
-                        println("PropKeys: $deployPropKeys")
-                        if (deploymentProperties.getProperty(deployPropKeys) == keys) {
-                            val splitKeys = deployPropKeys.split("/")
-                            val artifactPath = splitKeys[0]
-                            val artifactName = splitKeys[1]
-
-                            if (data.path.contains(artifactPath)) {
-                                data.listFiles()?.let { files ->
-                                    files.forEach { file ->
-                                        println("Filename -> ${file.name} || artifact:: $artifactName")
-                                        if (file.name == artifactName) {
-                                            println("Data Found with Name:: ${file.name}")
-                                        } else {
-                                            println("Data NOT Found with Name:: ${file.name}")
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            /*listMap.forEachIndexed { index, mutableMap ->
-                println("Keys:: $mutableMap")
-                mutableMap.forEach { (keys, data) ->
-                    for (deployPropKeys in deploymentProperties.stringPropertyNames()) {
-                        println("PropKeys: $deployPropKeys")
-                        if (deploymentProperties.getProperty(deployPropKeys) == keys) {
-                            val splitKeys = deployPropKeys.split("/")
-                            val artifactPath = splitKeys[0]
-                            val artifactName = splitKeys[1]
-
-                            if (data.path.contains(artifactPath)) {
-                                data.listFiles()?.let { files ->
-                                    files.forEach { file ->
-                                        println("Filename -> ${file.name} || artifact:: $artifactName")
-                                        if (file.name == artifactName) {
-                                            println("Data Found with Name:: ${file.name}")
-                                        } else {
-                                            println("Data NOT Found with Name:: ${file.name}")
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }*/
-
-        }
-    }
-
-    /** Sorting Process..
-     * if ListDataProps value are contains in the path looping
-     * Then insert it into mapChildGrouping
-     * ex: ListDataProps => [mklik, ibank]
-     * if path -> '../mklik_bca_inter1' contains words in 'mklik' => insert to machildGrouping as 'key: mklik' && 'value: ../mklik_bca_inter1'
-     * */
-
-    private fun printListNode(parentIndex: Int, dirPaths: File) {
-        stbAppend("<hr>")
-        stbAppendStyle("div-open", "content")
-
-        stbAppendStyle("table-open", null)
-        val nameTableHeader = mutableListOf<Any>(strNodeNo, strNodeName)
-        stbAppendTableHeader(null, nameTableHeader)
-
-        val nodeNameTableData = mutableListOf<Any>((parentIndex + 1), "<mark><b>${dirPaths.name}</b></mark>")
-        stbAppendTableData("center", nodeNameTableData)
-        stbAppendStyle("table-close", null)
-    }
-
     private fun summaryPercentage(totalValue: Int, passedValue: Int, failedValue: Int) {
         if (totalValue != 0) {
             val decFormat = DecimalFormat("#.##")
@@ -459,25 +339,21 @@ class DeploymentHelperHTML(private val args: Array<String>?) : IConfig.StringBui
         }
     }
 
-    private fun errorSummaries(listErrorPath: MutableList<ErrorSummaries>?) {
+    private fun errorSummaries(listErrorPath: MutableList<ErrorDeployment>?) {
+        println("ListError: $listErrorPath")
         listErrorPath?.let {
+            println("Name:: $it")
             if (!it.isNullOrEmpty()) {
                 stbAppendStyle("h4", strErrorList)
 
                 stbAppendStyle("table-open", null)
-                val nameTableHeader = mutableListOf<Any>(strNo, strErrorPathName, strExpectedHTML, strFoundHTML)
+                val nameTableHeader = mutableListOf<Any>(strNo, strModel, strErrorPathName, strArtifactName)
                 stbAppendTableHeader(null, nameTableHeader)
 
                 for ((index, dirPaths) in it.withIndex()) {
-                    var errorPaths = dirPaths.errorPath.toString()
-                    if (errorPaths.contains("\\")) {
-                        errorPaths = errorPaths.replace("\\", "/")
-                    }
+                    val linkPath = "<a href =\"${dirPaths.errorParentPath}\" target=\"_blank\"> ${dirPaths.errorPathName}</a>"
 
-                    val lastIndexOf = errorPaths.lastIndexOf("/")
-                    val linkPath = "<a href =\"${errorPaths}\" target=\"_blank\"> ${errorPaths.substring(lastIndexOf + 1)}</a>"
-
-                    val errorListTableData = mutableListOf<Any>((index + 1), linkPath, "<b>${dirPaths.listExpected}</b>", "${dirPaths.listActualItems}")
+                    val errorListTableData = mutableListOf<Any>((index + 1), "<mark>${dirPaths.deploymentModel}</mark>", linkPath, "<b>${dirPaths.artifactName} &#10060;</b>")
                     stbAppendTableData("center", errorListTableData)
                 }
 

@@ -24,10 +24,12 @@ const val strPathName = "Path Name"
 const val strNo = "No"
 const val strName = "Name"
 const val strSize = "Size"
+const val strModel = "Models"
 const val strMD5Code = "MD5 Code"
 const val strNotes = "&#8258;<u>NOTES</u>"
 
 const val strErrorPathName = "Error Path Name"
+const val strArtifactName = "Artifact Name"
 const val strExpectedHTML = "Expected &#9989;"
 const val strFoundHTML = "Found &#10060;"
 
