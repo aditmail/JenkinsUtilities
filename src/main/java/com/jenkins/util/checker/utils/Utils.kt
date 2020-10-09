@@ -8,7 +8,12 @@ import com.jenkins.util.checker.models.DeploymentMappers
 import org.apache.commons.collections4.CollectionUtils
 import java.io.*
 import java.nio.charset.StandardCharsets
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
 import java.util.*
+import java.util.stream.Collectors
+import java.util.stream.Stream
 
 inline fun <reified T> isEqual(first: List<T>, second: List<T>): Boolean {
     if (first.size != second.size) {
@@ -23,6 +28,13 @@ inline fun <reified T> isContentEquals(first: List<T>, second: List<T>): Boolean
     }
 
     return CollectionUtils.isEqualCollection(first, second)
+}
+
+fun writeToFile(fileContent: String, fileOutput: File) {
+    val outputStream = FileOutputStream(fileOutput.absoluteFile)
+    val writer = OutputStreamWriter(outputStream)
+    writer.write(fileContent)
+    writer.close()
 }
 
 fun getFile(filename: String): File? {
@@ -92,32 +104,6 @@ fun valueChecker(projectName: String, value: String): List<String>? {
     return listDir
 }
 
-fun deploymentChecker(projectName: String, propName: String, dirValue: String, lastConfigPath: String) {
-    //projectName -> KBI
-    //propName -> IBank
-    //dirValue -> ibank_pilot1 or mklik_pilot
-    val filename = getFileFromResources("DeployMapper.json")
-    val listMapping = object : TypeToken<DeploymentMappers>() {}.type
-    val dataGSON = Gson().fromJson<DeploymentMappers>(filename, listMapping)
-    for (data in dataGSON.deploy_mapper) {
-        if (data.project_name == projectName) {
-            for (deploymentList in data.deployment_dir_name) {
-                if (deploymentList.prop_name == propName) {
-                    if (dirValue.contains(deploymentList.dir_path_name)) {
-                        for (modelsData in deploymentList.models) {
-                            if (lastConfigPath.contains(modelsData.application)) {
-
-                            }
-                        }
-                    } else {
-
-                    }
-                }
-            }
-        }
-    }
-}
-
 fun deploymentConfig(projectName: String, propName: String, deploymentProperties: Properties) {
     //projectName -> KBI
     //propName -> IBank
@@ -135,14 +121,71 @@ fun deploymentConfig(projectName: String, propName: String, deploymentProperties
                         for (models in deploymentList.models) {
                             val applicationModel = models.application
                             for (listArtifact in models.artifact) {
-                                deploymentProperties.setProperty("$dirPathName/$listArtifact",applicationModel)
+                                deploymentProperties.setProperty("$dirPathName/$listArtifact", applicationModel)
                             }
                         }
                     }
                 }
-
-                //deploymentProp.store(FileOutputStream(File.createTempFile( "DeployProps", ".properties")), null)
             }
         }
     }
+}
+
+fun getParentStreamList(startParentPathing: Path?, models: Int): List<String>? {
+    var listParentPath: List<String>? = null
+    startParentPathing?.let { parentPath ->
+        val suffix = when (models) {
+            1 -> "config"
+            2 -> "deployment"
+            else -> "NaN"
+        }
+
+        val parentStream: Stream<Path> = Files.walk(parentPath, Int.MAX_VALUE) //Discovering the parentPath with Max value to its Last Subfolder
+        listParentPath = parentStream.map(java.lang.String::valueOf)
+                .filter { it.endsWith(suffix) } //Filtering to get 'config' directory Only
+                .sorted()
+                .collect(Collectors.toList())
+    }
+
+    return listParentPath
+}
+
+fun getConfigStreamList(configPath: String?, models: Int): MutableList<String>? {
+    var listChildPath: MutableList<String>? = null
+    configPath?.let { childPath ->
+        when (models) {
+            1 -> {
+                //for Config Models
+                val configStream: Stream<Path> = Files.walk(Paths.get(childPath), 1) //Discovering the configPath with Min value, jumping to Instance dir
+                listChildPath = configStream.map(java.lang.String::valueOf)
+                        .sorted()
+                        .collect(Collectors.toList())
+            }
+            2 -> {
+                //for Deployment Models
+                val configStream: Stream<Path> = Files.walk(Paths.get(childPath), Int.MAX_VALUE) //Discovering the configPath with Min value, jumping to Instance dir
+                listChildPath = configStream.map(java.lang.String::valueOf)
+                        .filter { it.endsWith(".war") or it.endsWith(".jar") or it.endsWith(".ear") }
+                        .sorted()
+                        .collect(Collectors.toList())
+            }
+        }
+    }
+
+    return listChildPath
+}
+
+fun getConfigStream(configPath: String): String? {
+    val configStream: Stream<Path> = Files.walk(Paths.get(configPath), Int.MAX_VALUE) //Discovering the configPath with Min value, jumping to Instance dir
+    return configStream.map(java.lang.String::valueOf)
+            .filter { it.endsWith(".war") or it.endsWith(".jar") or it.endsWith(".ear") }
+            .findFirst()
+            .get()
+}
+
+fun getDirectoryNode(configPath: Path): MutableList<String>? {
+    val configStream: Stream<Path> = Files.walk(configPath, 1) //Discovering the configPath with Min value, jumping to Instance dir
+    return configStream.map(java.lang.String::valueOf)
+            .sorted()
+            .collect(Collectors.toList())
 }

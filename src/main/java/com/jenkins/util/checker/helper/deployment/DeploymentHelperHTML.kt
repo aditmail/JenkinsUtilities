@@ -5,17 +5,12 @@ import com.jenkins.util.checker.utils.*
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
-import java.io.OutputStreamWriter
 import java.math.RoundingMode
-import java.nio.file.Files
-import java.nio.file.Path
 import java.nio.file.Paths
 import java.text.DecimalFormat
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.*
-import java.util.stream.Collectors
-import java.util.stream.Stream
 import kotlin.collections.ArrayList
 
 
@@ -47,11 +42,11 @@ class DeploymentHelperHTML(private val args: Array<String>?) : IConfig.StringBui
 
     fun initFiles() {
         if (args?.size == 0 || args?.size != 4) {
-            println("Please Input The Parameters That's are Needed")
-            println("1st Params --> Project-Name (ex: klikBCAIndividu)")
-            println("2nd Params --> Config-Type (ex: Pilot-APP)")
-            println("3rd Params --> Nodes-Dir-Path (ex: ../KBI/PILOT/CONFIG/APP")
-            println("4th Params --> Config_Path (ex: ..KBI/var/changes-config-app.txt")
+            println(strInputParameters)
+            println(strInputFirstParams)
+            println(strInputSecondParams)
+            println(strInputThirdParams)
+            println(strInputFourthParams)
         } else {
             this.projectName = args[0].trim()
             val configType = args[1].trim()
@@ -174,7 +169,7 @@ class DeploymentHelperHTML(private val args: Array<String>?) : IConfig.StringBui
                             stbAppendTableData("center", tableData)
                             stbAppendStyle("table-close", null)
 
-                            val collect = getParentStreamList(Paths.get(nodeList))
+                            val collect = getParentStreamList(Paths.get(nodeList), 2)
                             collect?.let { parentList ->
                                 for (configList in parentList) {
 
@@ -183,7 +178,7 @@ class DeploymentHelperHTML(private val args: Array<String>?) : IConfig.StringBui
                                         val envStream = FileInputStream(deploy)
                                         deploymentProperties.load(envStream)
 
-                                        getConfigStreamList(configList)?.let { listPath ->
+                                        getConfigStreamList(configList, 2)?.let { listPath ->
                                             listPath.forEach { path ->
                                                 val getParentFile = File(path).parentFile
                                                 val getParentPath = Paths.get(getParentFile.toString())
@@ -271,7 +266,7 @@ class DeploymentHelperHTML(private val args: Array<String>?) : IConfig.StringBui
             stbAppendStyle("h4", strReportSummaries)
             stbAppendStyle("div-close", null)
 
-            println("Successfully Running the Config Validator!")
+            println("Successfully Running the Deployment Validator!")
 
             stbAppendStyle("body-close", null)
             stbAppendStyle("html-close", null)
@@ -321,46 +316,6 @@ class DeploymentHelperHTML(private val args: Array<String>?) : IConfig.StringBui
 
         stbAppendStyle("div-close", null)
         stbAppend("<hr>")
-    }
-
-    private fun getParentStreamList(startParentPathing: Path): List<String>? {
-        val parentStream: Stream<Path> = Files.walk(startParentPathing, Int.MAX_VALUE) //Discovering the parentPath with Max value to its Last Subfolder
-        return parentStream.map(java.lang.String::valueOf)
-                .filter { it.endsWith("deployment") } //Filtering to get 'config' directory Only
-                .sorted()
-                .collect(Collectors.toList())
-    }
-
-    private fun getConfigStreamList(configPath: String): MutableList<String>? {
-        val configStream: Stream<Path> = Files.walk(Paths.get(configPath), Int.MAX_VALUE) //Discovering the configPath with Min value, jumping to Instance dir
-        return configStream.map(java.lang.String::valueOf)
-                .filter { it.endsWith(".war") or it.endsWith(".jar") or it.endsWith(".ear") }
-                .sorted()
-                .collect(Collectors.toList())
-    }
-
-    private fun getConfigStream(configPath: String): String? {
-        val configStream: Stream<Path> = Files.walk(Paths.get(configPath), Int.MAX_VALUE) //Discovering the configPath with Min value, jumping to Instance dir
-        return configStream.map(java.lang.String::valueOf)
-                .filter { it.endsWith(".war") or it.endsWith(".jar") or it.endsWith(".ear") }
-                .findFirst()
-                .get()
-    }
-
-    private fun getDirectoryNode(configPath: Path): MutableList<String>? {
-        val configStream: Stream<Path> = Files.walk(configPath, 1) //Discovering the configPath with Min value, jumping to Instance dir
-        return configStream.map(java.lang.String::valueOf)
-                .sorted()
-                .collect(Collectors.toList())
-    }
-
-    private fun subStringDir(lastConfigPath: String): String {
-        var mLastConfigPath = lastConfigPath
-        if (mLastConfigPath.contains("\\")) {
-            mLastConfigPath = mLastConfigPath.replace("\\", "/")
-        }
-        val indexing = mLastConfigPath.lastIndexOf("/")
-        return mLastConfigPath.substring(indexing + 1) //Getting the Last Dir Name -> ex: from ~> C\TestPath\Test\Path || to ~> Path
     }
 
     private fun summaryPercentage(totalValue: Int, passedValue: Int, failedValue: Int) {
@@ -414,13 +369,6 @@ class DeploymentHelperHTML(private val args: Array<String>?) : IConfig.StringBui
                 stbAppendStyle("p", strConfigErrorActionHTML)
             }
         }
-    }
-
-    private fun writeToFile(fileContent: String, fileOutput: File) {
-        val outputStream = FileOutputStream(fileOutput.absoluteFile)
-        val writer = OutputStreamWriter(outputStream)
-        writer.write(fileContent)
-        writer.close()
     }
 
     override fun stbAppend(value: String?) {

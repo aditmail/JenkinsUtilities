@@ -3,6 +3,13 @@ package com.jenkins.util.checker.utils
 const val strStrips = "-----------------------------------"
 const val strAsterisks = "***************"
 
+const val strInputParameters = "Please Input The Parameters That's are Needed"
+
+const val strInputFirstParams = "1st Params --> Project-Name (ex: klikBCAIndividu)"
+const val strInputSecondParams = "2nd Params --> Config-Type (ex: Pilot-APP)"
+const val strInputThirdParams = "3rd Params --> Nodes-Dir-Path (ex: ../KBI/PILOT/CONFIG/APP"
+const val strInputFourthParams = "4th Params --> Config_Path (ex: ..KBI/var/changes-config-app.txt"
+
 const val strConfigValidator = "$strAsterisks CONFIG VALIDATOR $strAsterisks"
 const val strDeployValidator = "$strAsterisks DEPLOY VALIDATOR $strAsterisks"
 const val strProjectName = "Project Name"

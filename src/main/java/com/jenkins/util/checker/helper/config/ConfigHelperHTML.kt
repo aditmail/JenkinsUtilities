@@ -1,10 +1,11 @@
 package com.jenkins.util.checker.helper.config
 
-import com.jenkins.util.checker.utils.CheckSumHelper
 import com.jenkins.util.checker.models.ErrorSummaries
 import com.jenkins.util.checker.utils.*
 import org.apache.commons.io.FileUtils
-import java.io.*
+import java.io.File
+import java.io.FileInputStream
+import java.io.IOException
 import java.math.RoundingMode
 import java.nio.file.Files
 import java.nio.file.Path
@@ -82,11 +83,11 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
 
     /*fun initFiles() {
         if (args?.size == 0 || args?.size != 4) {
-            println("Please Input The Parameters That's are Needed")
-            println("1st Params --> Project-Name (ex: klikBCAIndividu)")
-            println("2nd Params --> Config-Type (ex: Pilot-APP)")
-            println("3rd Params --> Nodes-Dir-Path (ex: ../KBI/PILOT/CONFIG/APP")
-            println("4th Params --> Config_Path (ex: ..KBI/var/changes-config-app.txt")
+            println(strInputParameters)
+            println(strInputFirstParams)
+            println(strInputSecondParams)
+            println(strInputThirdParams)
+            println(strInputFourthParams)
         } else {
             projectName = args[0].trim()
             val configType = args[1].trim()
@@ -129,7 +130,7 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
                     println("Parent Path: $startParentPathing")
 
                     try {
-                        val collect = getParentStreamList(startParentPathing)
+                        val collect = getParentStreamList(startParentPathing, 1)
                         collect?.let { parentList ->
                             for (configList in parentList) {
                                 val configCollect = getConfigStreamList(configList)
@@ -194,14 +195,6 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
             writeToFile(stringBuilder.toString(), fileOutput)
             println("Creating Report File Successful!")
         }
-    }
-
-    private fun getParentStreamList(startParentPathing: Path): List<String>? {
-        val parentStream: Stream<Path> = Files.walk(startParentPathing, Int.MAX_VALUE) //Discovering the parentPath with Max value to its Last Subfolder
-        return parentStream.map(java.lang.String::valueOf)
-                .filter { it.endsWith("config") } //Filtering to get 'config' directory Only
-                .sorted()
-                .collect(Collectors.toList())
     }
 
     private fun getConfigStreamList(configPath: String): MutableList<String>? {
@@ -353,15 +346,6 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
                 }
             }
         }
-    }
-
-    private fun subStringDir(lastConfigPath: String): String {
-        var mLastConfigPath = lastConfigPath
-        if (mLastConfigPath.contains("\\")) {
-            mLastConfigPath = mLastConfigPath.replace("\\", "/")
-        }
-        val indexing = mLastConfigPath.lastIndexOf("/")
-        return mLastConfigPath.substring(indexing + 1) //Getting the Last Dir Name -> ex: from ~> C\TestPath\Test\Path || to ~> Path
     }
 
     private fun printListNode(parentIndex: Int, dirPaths: File) {
@@ -595,13 +579,6 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
 
             stbAppend(null)
         }
-    }
-
-    private fun writeToFile(fileContent: String, fileOutput: File) {
-        val outputStream = FileOutputStream(fileOutput.absoluteFile)
-        val writer = OutputStreamWriter(outputStream)
-        writer.write(fileContent)
-        writer.close()
     }
 
     private fun populateProperties() {
