@@ -293,7 +293,7 @@ class DeploymentHelperNew(private val listDeployment: MutableList<DividerModels>
     }
 
     private fun generatedFile(projectName: String, flavorType: String, deployModels: String) {
-        fileOutput = File("outputDeploymentTEST_${deployModels}.html") //Save not in VAR Folder..
+        fileOutput = File("[$projectName]outputDeployment_${deployModels}.html") //Save not in VAR Folder..
         if (!fileOutput.exists()) {
             fileOutput.createNewFile()
         } else {

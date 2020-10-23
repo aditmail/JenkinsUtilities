@@ -537,7 +537,7 @@ class ConfigHelperNew(private val listConfig: MutableList<DividerModels>?, priva
     }
 
     private fun generatedFile(projectName: String, flavorType: String, deployModels: String) {
-        fileOutput = File("outputConfigTEST_${deployModels}.html") //Save not in VAR Folder..
+        fileOutput = File("[$projectName]outputConfig_${deployModels}.html") //Save not in VAR Folder..
         if (!fileOutput.exists()) {
             fileOutput.createNewFile()
         } else {
