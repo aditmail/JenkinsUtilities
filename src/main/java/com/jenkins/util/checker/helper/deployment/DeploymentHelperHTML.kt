@@ -68,23 +68,6 @@ class DeploymentHelperHTML(private val args: Array<String>?) : IConfig.StringBui
         }
     }
 
-    /*fun initFiles(projectName: String, configType: String, nodesDirPath: String, configPath: String, destinationPath: String) {
-        this.projectName = projectName
-
-        //Init Config File
-        configFile = getFile(configPath)
-        populateProperties(destinationPath) //Read the txt contains Properties Data..
-
-        println("ListDataProps:: $listDataProps (${listDataProps?.size} Data)")
-        if (!listDataProps.isNullOrEmpty()) {
-            startValidating(configType, nodesDirPath, destinationPath)
-        } else {
-            println("""All ${configFile?.name} Properties Contains False Value
-                The Deployment Validator is Cancelled.
-            """.trimMargin())
-        }
-    }*/
-
     private fun populateProperties(destinationPath: String?) {
         configFile?.let { config ->
             deployPropFile = if (destinationPath.isNullOrEmpty()) {

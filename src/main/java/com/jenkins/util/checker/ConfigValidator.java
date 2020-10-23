@@ -1,5 +1,6 @@
 package com.jenkins.util.checker;
 
+import com.jenkins.util.checker.helper.DividerHelper;
 import com.jenkins.util.checker.helper.config.ConfigHelperHTML;
 import com.jenkins.util.checker.helper.deployment.DeploymentHelperHTML;
 
@@ -20,6 +21,17 @@ public class ConfigValidator {
                 helperHTML.initFiles();
             }
         }
+
+        String[] argsTest = {
+                "klikBCAIndividu",
+                "PILOT",
+                "D:/TEST CASE/KBI-PILOT-CONFIG-VALIDATOR/DEPLOY/PILOT",
+                "D:/TEST CASE/KBI-PILOT-CONFIG-VALIDATOR/var/",
+                "D:/TEST CASE/KBI-PILOT-CONFIG-VALIDATOR/"
+        };
+
+        DividerHelper dividerHelper = new DividerHelper(argsTest);
+        dividerHelper.initFiles();
 
         //ConfigHelperHTML helperHTML = new ConfigHelperHTML(args);
         //helperHTML.initFiles();

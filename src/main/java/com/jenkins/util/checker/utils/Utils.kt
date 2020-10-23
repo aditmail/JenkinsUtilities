@@ -153,7 +153,6 @@ fun deploymentConfig(projectName: String, propName: String, deploymentProperties
             }
         }
     }
-
 }
 
 fun getParentStreamList(startParentPathing: Path?, models: Int): List<String>? {
@@ -168,6 +167,19 @@ fun getParentStreamList(startParentPathing: Path?, models: Int): List<String>? {
         val parentStream: Stream<Path> = Files.walk(parentPath, Int.MAX_VALUE) //Discovering the parentPath with Max value to its Last Subfolder
         listParentPath = parentStream.map(java.lang.String::valueOf)
                 .filter { it.endsWith(suffix) } //Filtering to get 'config' directory Only
+                .sorted()
+                .collect(Collectors.toList())
+    }
+
+    return listParentPath
+}
+
+fun getParentStreamListTest(startParentPathing: Path?): List<String>? {
+    var listParentPath: List<String>? = null
+    startParentPathing?.let { parentPath ->
+        val parentStream: Stream<Path> = Files.walk(parentPath, Int.MAX_VALUE) //Discovering the parentPath with Max value to its Last Subfolder
+        listParentPath = parentStream.map(java.lang.String::valueOf)
+                .filter { it.endsWith("config") or it.endsWith("deployment") } //Filtering to get 'config' directory Only
                 .sorted()
                 .collect(Collectors.toList())
     }
@@ -191,6 +203,14 @@ fun getConfigStreamList(configPath: String?, models: Int): MutableList<String>? 
                 val configStream: Stream<Path> = Files.walk(Paths.get(childPath), Int.MAX_VALUE) //Discovering the configPath with Min value, jumping to Instance dir
                 listChildPath = configStream.map(java.lang.String::valueOf)
                         .filter { it.endsWith(".war") or it.endsWith(".jar") or it.endsWith(".ear") }
+                        .sorted()
+                        .collect(Collectors.toList())
+            }
+            3 -> {
+                //for Deployment Models
+                val configStream: Stream<Path> = Files.walk(Paths.get(childPath), Int.MAX_VALUE) //Discovering the configPath with Min value, jumping to Instance dir
+                listChildPath = configStream.map(java.lang.String::valueOf)
+                        .filter { it.endsWith(".properties") or it.endsWith(".xml")}
                         .sorted()
                         .collect(Collectors.toList())
             }
