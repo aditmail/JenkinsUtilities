@@ -9,10 +9,9 @@ public class ConfigValidator {
 
         /*String[] argsTest = {
                 "klikBCAIndividu",
-                "PILOT",
-                "D:/TEST CASE/KBI-PILOT-CONFIG-VALIDATOR/DEPLOY/PILOT",
-                "D:/TEST CASE/KBI-PILOT-CONFIG-VALIDATOR/var/",
-                "D:/TEST CASE/KBI-PILOT-CONFIG-VALIDATOR/"
+                "INTRA",
+                "D:/TEST CASE/KBI-INTRA-CONFIG-VALIDATOR/DEPLOY/INTRA",
+                "D:/TEST CASE/KBI-INTRA-CONFIG-VALIDATOR/var/"
         };*/
 
         DividerHelper dividerHelper = new DividerHelper(args);

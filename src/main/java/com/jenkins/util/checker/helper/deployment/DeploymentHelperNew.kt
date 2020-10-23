@@ -8,6 +8,7 @@ import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.math.RoundingMode
+import java.nio.file.Path
 import java.nio.file.Paths
 import java.text.DecimalFormat
 import java.time.LocalDateTime
@@ -22,6 +23,8 @@ class DeploymentHelperNew(private val listDeployment: MutableList<DividerModels>
 
     //Init Helper
     private lateinit var projectName: String
+    private lateinit var flavorType: String
+
     private val dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
 
     private val stringBuilder: StringBuilder = StringBuilder()
@@ -41,15 +44,19 @@ class DeploymentHelperNew(private val listDeployment: MutableList<DividerModels>
 
     fun validateDeployment(projectName: String, flavorType: String) {
         this.projectName = projectName
+        this.flavorType = flavorType
 
         if (!listDeployment.isNullOrEmpty()) {
             println("ListOfDeployment -> $listDeployment || size: ${listDeployment.size}")
 
             listDeployment.forEachIndexed { index, dividerModels ->
+                println("indexed -> $index")
                 listNodesName?.add(File(dividerModels.parentDirectory))
                 if (index == 0) {
+                    println("TEST")
                     generatedFile(projectName, flavorType, dividerModels.deployModels)
                     getConfigFile(configPath)
+
                     populateProperties(null) //Read the txt contains Properties Data..
                 }
 
@@ -112,11 +119,14 @@ class DeploymentHelperNew(private val listDeployment: MutableList<DividerModels>
             stbAppendTableHeader(null, headerFileName)
 
             getConfigStreamList(nodesDirPath, 2)?.let { listPath ->
+                println("listPath -> ${listPath.size} ++ ${listPath.toList()}")
                 listPath.forEachIndexed { fileIndex, path ->
                     val getParentFile = File(path).parentFile
+                    println("ParentPath-> $getParentFile")
                     val getParentPath = Paths.get(getParentFile.toString())
 
-                    val getSubPath = getParentPath.subpath(getParentPath.nameCount - 2, getParentPath.nameCount - 1)
+                    val getSubPath: Path? = checkDataHandling(projectName, flavorType, configType, getParentPath)
+
                     val getFileName = File(path).name
                     val sizeOfFile = FileUtils.byteCountToDisplaySize(File(path).length())
                     val generateMD5 = CheckSumHelper().generateMD5Code(File(path).absolutePath)
@@ -128,26 +138,28 @@ class DeploymentHelperNew(private val listDeployment: MutableList<DividerModels>
                             val getNameArtifact = splitKeys[1]
 
                             print("GetFilePath: $getSubPath --> isContains $getLocationArtifact? ")
-                            if (getSubPath.toString().contains(getLocationArtifact)) {
-                                totalConfigData += 1 //Count How Many Files Are Compared
-                                println("[TRUE]")
+                            getSubPath?.let {
+                                if (it.toString().contains(getLocationArtifact)) {
+                                    totalConfigData += 1 //Count How Many Files Are Compared
+                                    println("[TRUE]")
 
-                                val pathLink = "<a href=\"$getParentFile\" target=\"_blank\">${getSubPath}</a>"
-                                if (getNameArtifact == getFileName) {
-                                    passedConfigData += 1 //If Passed, Add Counter
+                                    val pathLink = "<a href=\"$getParentFile\" target=\"_blank\">${it}</a>"
+                                    if (getNameArtifact == getFileName) {
+                                        passedConfigData += 1 //If Passed, Add Counter
 
-                                    val tableDataFile = mutableListOf<Any>((fileIndex + 1), pathLink, "<p class=\"listData\">$getFileName</p>", sizeOfFile, generateMD5.toString(), "<p class=\"passed\">$strPassed</p>", strCorrectFile)
-                                    stbAppendTableData("center", tableDataFile)
+                                        val tableDataFile = mutableListOf<Any>((fileIndex + 1), pathLink, "<p class=\"listData\">$getFileName</p>", sizeOfFile, generateMD5.toString(), "<p class=\"passed\">$strPassed</p>", strCorrectFile)
+                                        stbAppendTableData("center", tableDataFile)
+                                    } else {
+                                        failedConfigData += 1 //If Failed Add Counter
+                                        val errorDeployment = ErrorDeployment(configType, getParentFile, it, getFileName)
+                                        listErrorPath?.add(errorDeployment)
+
+                                        val tableDataFile = mutableListOf<Any>((fileIndex + 1), pathLink, "<p class=\"listData\">$getFileName</p>", sizeOfFile, generateMD5.toString(), "<p class=\"failed\">$strFailed</p>", strIncorrectFile)
+                                        stbAppendTableData("center", tableDataFile)
+                                    }
                                 } else {
-                                    failedConfigData += 1 //If Failed Add Counter
-                                    val errorDeployment = ErrorDeployment(configType, getParentFile, getSubPath, getFileName)
-                                    listErrorPath?.add(errorDeployment)
-
-                                    val tableDataFile = mutableListOf<Any>((fileIndex + 1), pathLink, "<p class=\"listData\">$getFileName</p>", sizeOfFile, generateMD5.toString(), "<p class=\"failed\">$strFailed</p>", strIncorrectFile)
-                                    stbAppendTableData("center", tableDataFile)
+                                    println("[FALSE]")
                                 }
-                            } else {
-                                println("[FALSE]")
                             }
                         }
                     }
@@ -161,6 +173,30 @@ class DeploymentHelperNew(private val listDeployment: MutableList<DividerModels>
 
             stbAppend(null)
         }
+    }
+
+    //Checking model for APP/WEB; KBI OR OTHER; INTRA/INTER OR OTHER
+    private fun checkDataHandling(projectName: String, flavorType: String, configType: String, getParentPath: Path): Path? {
+        var setPath: Path? = null
+        if (projectName == "klikBCAIndividu") {
+            when (flavorType) {
+                "PILOT" -> {
+                    setPath = getParentPath.subpath(getParentPath.nameCount - 2, getParentPath.nameCount - 1)
+                }
+                "INTRA" -> {
+                    setPath = getParentPath.subpath(getParentPath.nameCount - 3, getParentPath.nameCount - 2)
+                }
+                "INTER" -> {
+                    setPath = if (configType == "APP") {
+                        getParentPath.subpath(getParentPath.nameCount - 3, getParentPath.nameCount - 2)
+                    } else {
+                        getParentPath.subpath(getParentPath.nameCount - 2, getParentPath.nameCount - 1)
+                    }
+                }
+            }
+        }
+
+        return setPath
     }
 
     private fun summaryPercentage(totalValue: Int, passedValue: Int, failedValue: Int) {
@@ -232,7 +268,7 @@ class DeploymentHelperNew(private val listDeployment: MutableList<DividerModels>
         println("configFile -> $configFile")
         configFile?.let { config ->
             deployPropFile = if (destinationPath.isNullOrEmpty()) {
-                File("var/", "DeployProp.properties") //For Real Imple
+                File("var/", "DeployProp.properties") //For Real Using
                 //File("DeployProp.properties") //For Testing
             } else {
                 File(destinationPath, "DeployProp.properties")

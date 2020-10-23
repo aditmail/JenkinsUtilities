@@ -86,7 +86,7 @@ fun valueChecker(projectName: String, value: String): List<String>? {
     var listDir: List<String>? = null
 
     //val filename = getFileFromRes("ConfigMapper.json")?.readText(Charsets.UTF_8)
-    val filename = getFileFromResources("ConfigMapper.json")
+    val filename = getFileFromResources("ConfigMapper.json") //For Testing & Live Use
     val listMapping = object : TypeToken<ConfigMapper>() {}.type
     val dataGSON = Gson().fromJson<ConfigMapper>(filename, listMapping)
     for (data in dataGSON.mapper) {
