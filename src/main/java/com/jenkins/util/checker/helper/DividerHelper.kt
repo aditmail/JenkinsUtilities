@@ -67,8 +67,8 @@ class DividerHelper(private val args: Array<String>?) {
 
                     listConfigPaths?.let {
                         val getConfigList = it.toMutableList()
-                        //ConfigHelperNew(getConfigList, configPath)
-                          //      .validateConfig(projectName, flavorType)
+                        ConfigHelperNew(getConfigList, configPath)
+                                .validateConfig(projectName, flavorType)
                     }
 
                     listDeploymentPaths?.let {

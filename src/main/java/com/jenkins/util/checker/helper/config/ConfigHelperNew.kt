@@ -8,6 +8,8 @@ import java.io.File
 import java.io.FileInputStream
 import java.math.RoundingMode
 import java.text.DecimalFormat
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import java.util.*
 
 class ConfigHelperNew(private val listConfig: MutableList<DividerModels>?, private val configPath: String?) : IConfig.StringBuilders {
@@ -19,6 +21,7 @@ class ConfigHelperNew(private val listConfig: MutableList<DividerModels>?, priva
     private val stringBuilder: StringBuilder = StringBuilder()
     private val properties = Properties()
     private val checkSumHelper = CheckSumHelper()
+    private val dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
 
     //Init List
     private val listActualItems: MutableList<String> = ArrayList()
@@ -29,7 +32,8 @@ class ConfigHelperNew(private val listConfig: MutableList<DividerModels>?, priva
     private val listChildGrouping: MutableList<MutableMap<String, String>> = ArrayList()
 
     private val listDataProps: MutableList<String>? = ArrayList()
-    private val listNodesName: MutableList<File>? = ArrayList()
+    private val listNodesName: MutableList<String>? = ArrayList()
+    private val listPaths: MutableList<File>? = ArrayList()
     private val listErrorPath: MutableList<ErrorSummaries>? = ArrayList()
 
     //Init Parent Map
@@ -52,7 +56,8 @@ class ConfigHelperNew(private val listConfig: MutableList<DividerModels>?, priva
         if (!listConfig.isNullOrEmpty()) {
             println("ListOfConfig -> $listConfig || size: ${listConfig.size}")
             listConfig.forEachIndexed { index, dividerModels ->
-                listNodesName?.add(File(dividerModels.parentDirectory))
+                listNodesName?.add(dividerModels.nodeName)
+                listPaths?.add(File(dividerModels.parentDirectory))
                 if (index == 0) {
                     generatedFile(projectName, flavorType, dividerModels.deployModels)
                     getConfigFile(configPath, dividerModels.deployModels)
@@ -62,9 +67,9 @@ class ConfigHelperNew(private val listConfig: MutableList<DividerModels>?, priva
                 startMappingConfig(index, dividerModels.parentDirectory)
             }
             if (!listDataProps.isNullOrEmpty()) {
-                populateChildData(mapChildDataGroupings, listNodesName)
+                populateChildData(mapChildDataGroupings, listPaths)
             } else {
-                populateData(mapDataGrouping, listNodesName)
+                populateData(mapDataGrouping, listPaths)
             }
 
             summaryPercentage(totalConfigData, passedConfigData, failedConfigData)
@@ -267,16 +272,34 @@ class ConfigHelperNew(private val listConfig: MutableList<DividerModels>?, priva
     }
 
     private fun printListNode(parentIndex: Int, dirPaths: File) {
-        stbAppend("<hr>")
+        listNodesName?.let {
+            it.forEachIndexed { index, nodeName ->
+                if(index == parentIndex){
+                    stbAppend("<hr>")
+                    stbAppendStyle("div-open", "content")
+
+                    stbAppendStyle("table-open", null)
+                    val nameTableHeader = mutableListOf<Any>(strNodeNo, strNodeName)
+                    stbAppendTableHeader(null, nameTableHeader)
+
+                    println("dirPath -> $dirPaths")
+                    val nodeNameTableData = mutableListOf<Any>((parentIndex + 1), "<mark><b>${nodeName}</b></mark>")
+                    stbAppendTableData("center", nodeNameTableData)
+                    stbAppendStyle("table-close", null)
+                }
+            }
+        }
+        /*stbAppend("<hr>")
         stbAppendStyle("div-open", "content")
 
         stbAppendStyle("table-open", null)
         val nameTableHeader = mutableListOf<Any>(strNodeNo, strNodeName)
         stbAppendTableHeader(null, nameTableHeader)
 
+        println("dirPath -> $dirPaths")
         val nodeNameTableData = mutableListOf<Any>((parentIndex + 1), "<mark><b>${dirPaths.name}</b></mark>")
         stbAppendTableData("center", nodeNameTableData)
-        stbAppendStyle("table-close", null)
+        stbAppendStyle("table-close", null)*/
     }
 
     private fun printListData(filePath: File?, key: String?) {
@@ -562,6 +585,9 @@ class ConfigHelperNew(private val listConfig: MutableList<DividerModels>?, priva
         stbAppendTableData("center", tableData)
 
         stbAppendStyle("table-close", null)
+
+        val dateNow = LocalDateTime.now()
+        stbAppendStyle("p", String.format(strGeneratedAt, dateFormatter.format(dateNow)))
         stbAppendStyle("h4", strConfigValidator)
 
         stbAppendStyle("div-close", null)

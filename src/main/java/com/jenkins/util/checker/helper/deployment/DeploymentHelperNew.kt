@@ -3,6 +3,7 @@ package com.jenkins.util.checker.helper.deployment
 import com.jenkins.util.checker.models.DividerModels
 import com.jenkins.util.checker.models.ErrorDeployment
 import com.jenkins.util.checker.utils.*
+import org.apache.commons.io.FileUtils
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -105,13 +106,20 @@ class DeploymentHelperNew(private val listDeployment: MutableList<DividerModels>
             val envStream = FileInputStream(deploy)
             deploymentProperties.load(envStream)
 
+            stbAppend(null)
+            stbAppendStyle("table-open", null)
+            val headerFileName = mutableListOf<Any>(strNo, strPathName, strName, strSize, strMD5Code, strStatus, strNotes)
+            stbAppendTableHeader(null, headerFileName)
+
             getConfigStreamList(nodesDirPath, 2)?.let { listPath ->
-                listPath.forEach { path ->
+                listPath.forEachIndexed { fileIndex, path ->
                     val getParentFile = File(path).parentFile
                     val getParentPath = Paths.get(getParentFile.toString())
 
                     val getSubPath = getParentPath.subpath(getParentPath.nameCount - 2, getParentPath.nameCount - 1)
                     val getFileName = File(path).name
+                    val sizeOfFile = FileUtils.byteCountToDisplaySize(File(path).length())
+                    val generateMD5 = CheckSumHelper().generateMD5Code(File(path).absolutePath)
 
                     for (keys in deploymentProperties.stringPropertyNames()) {
                         if (deploymentProperties.getProperty(keys) == configType) {
@@ -121,37 +129,22 @@ class DeploymentHelperNew(private val listDeployment: MutableList<DividerModels>
 
                             print("GetFilePath: $getSubPath --> isContains $getLocationArtifact? ")
                             if (getSubPath.toString().contains(getLocationArtifact)) {
-
                                 totalConfigData += 1 //Count How Many Files Are Compared
                                 println("[TRUE]")
 
-                                stbAppend(null)
-                                stbAppendStyle("table-open", null)
-
                                 val pathLink = "<a href=\"$getParentFile\" target=\"_blank\">${getSubPath}</a>"
-                                val pathTableData = mutableListOf<Any>("<p class=\"tableData\">$strPathName</p>", pathLink)
-
-                                stbAppendTableData(null, pathTableData)
                                 if (getNameArtifact == getFileName) {
                                     passedConfigData += 1 //If Passed, Add Counter
 
-                                    val statusTableData = mutableListOf<Any>("<p class=\"tableData\">$strStatus</p>", "<p class=\"passed\">$strPassed</p>")
-                                    stbAppendTableData(null, statusTableData)
-
-                                    val notesTableData = mutableListOf<Any>("<p class=\"tableData\">$strNotes</p>", String.format(strDeploymentPassedHTML, getFileName))
-                                    stbAppendTableData(null, notesTableData)
-                                    stbAppendStyle("table-close", null)
+                                    val tableDataFile = mutableListOf<Any>((fileIndex + 1), pathLink, "<p class=\"listData\">$getFileName</p>", sizeOfFile, generateMD5.toString(), "<p class=\"passed\">$strPassed</p>", strCorrectFile)
+                                    stbAppendTableData("center", tableDataFile)
                                 } else {
                                     failedConfigData += 1 //If Failed Add Counter
                                     val errorDeployment = ErrorDeployment(configType, getParentFile, getSubPath, getFileName)
                                     listErrorPath?.add(errorDeployment)
 
-                                    val statusTableData = mutableListOf<Any>("<p class=\"tableData\">$strStatus</p>", "<p class=\"failed\">$strFailed</p>")
-                                    stbAppendTableData(null, statusTableData)
-
-                                    val notesTableData = mutableListOf<Any>("<p class=\"tableData\">$strNotes</p>", String.format(strDeploymentFailedHTML, getFileName))
-                                    stbAppendTableData(null, notesTableData)
-                                    stbAppendStyle("table-close", null)
+                                    val tableDataFile = mutableListOf<Any>((fileIndex + 1), pathLink, "<p class=\"listData\">$getFileName</p>", sizeOfFile, generateMD5.toString(), "<p class=\"failed\">$strFailed</p>", strIncorrectFile)
+                                    stbAppendTableData("center", tableDataFile)
                                 }
                             } else {
                                 println("[FALSE]")
@@ -160,6 +153,8 @@ class DeploymentHelperNew(private val listDeployment: MutableList<DividerModels>
                     }
                 }
             }
+            stbAppendStyle("table-close", null)
+
 
             stbAppendStyle("div-close", null)
             stbAppendStyle("div-close", null)
