@@ -289,17 +289,6 @@ class ConfigHelperNew(private val listConfig: MutableList<DividerModels>?, priva
                 }
             }
         }
-        /*stbAppend("<hr>")
-        stbAppendStyle("div-open", "content")
-
-        stbAppendStyle("table-open", null)
-        val nameTableHeader = mutableListOf<Any>(strNodeNo, strNodeName)
-        stbAppendTableHeader(null, nameTableHeader)
-
-        println("dirPath -> $dirPaths")
-        val nodeNameTableData = mutableListOf<Any>((parentIndex + 1), "<mark><b>${dirPaths.name}</b></mark>")
-        stbAppendTableData("center", nodeNameTableData)
-        stbAppendStyle("table-close", null)*/
     }
 
     private fun printListData(filePath: File?, key: String?) {

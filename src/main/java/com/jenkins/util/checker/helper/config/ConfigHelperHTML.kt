@@ -55,32 +55,6 @@ class ConfigHelperHTML(private val args: Array<String>?) : IConfig.StringBuilder
     private var passedConfigData = 0
     private var failedConfigData = 0
 
-    /*fun initFiles(projectName: String, configType: String, nodesDirPath: String, configPath: String, destinationPath: String) {
-        this.projectName = projectName
-
-        //Init FileOutput
-        fileOutput = File("$destinationPath/outputConfigs_${configType}.html")
-        if (!fileOutput.exists()) {
-            fileOutput.createNewFile()
-            println("Creating File:: $fileOutput")
-        } else {
-            println("File Already Exist:: $fileOutput")
-            println("Existing Data Will be Rewrite")
-        }
-        stringBuilder = StringBuilder()
-
-        //Init Config Dir
-        nodeDirFiles = File(nodesDirPath)
-
-        //Init Config File
-        configFile = getFile(configPath)
-
-        populateProperties()
-
-        //Checking Data..
-        checkMappings(nodeDirFiles, projectName, configType)
-    }*/
-
     fun initFiles() {
         if (args?.size == 0 || args?.size != 4) {
             println(strInputParameters)

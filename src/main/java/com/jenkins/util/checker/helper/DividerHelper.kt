@@ -13,7 +13,7 @@ class DividerHelper(private val args: Array<String>?) {
     private val listDeploymentPaths: MutableList<DividerModels>? = ArrayList()
 
     fun initFiles() {
-        if (args?.size == 0 || args?.size != 5) {
+        if (args?.size == 0 || args?.size != 4) {
             println(strInputParameters)
             println(strInputFirstParams)
             println(strInputSecondParams)
@@ -24,6 +24,17 @@ class DividerHelper(private val args: Array<String>?) {
             val configType = args[1].trim()
             val nodeDir = args[2].trim()
             val configPath = args[3].trim()
+
+            println("""
+                |-----------------------
+                |Detail of Params
+                |-----------------------
+                |projectName:: $projectName
+                |flavor:: $configType
+                |Directory:: $nodeDir
+                |configPath:: $configPath
+                |------------------------
+            """.trimMargin())
 
             startValidating(projectName, configType, nodeDir, configPath)
         }

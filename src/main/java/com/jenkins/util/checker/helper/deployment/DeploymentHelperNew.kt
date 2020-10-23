@@ -232,8 +232,8 @@ class DeploymentHelperNew(private val listDeployment: MutableList<DividerModels>
         println("configFile -> $configFile")
         configFile?.let { config ->
             deployPropFile = if (destinationPath.isNullOrEmpty()) {
-                //File("var/", "DeployProp.properties") //For Real Imple
-                File("DeployProp.properties") //For Testing
+                File("var/", "DeployProp.properties") //For Real Imple
+                //File("DeployProp.properties") //For Testing
             } else {
                 File(destinationPath, "DeployProp.properties")
             }
