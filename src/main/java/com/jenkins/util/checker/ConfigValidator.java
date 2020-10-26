@@ -7,14 +7,14 @@ public class ConfigValidator {
     public static void main(String[] args) {
         System.out.println("Config-Deployment Validator Status: Running!");
 
-        /*String[] argsTest = {
+        String[] argsTest = {
                 "klikBCAIndividu",
-                "INTRA",
-                "D:/TEST CASE/KBI-INTRA-CONFIG-VALIDATOR/DEPLOY/INTRA",
-                "D:/TEST CASE/KBI-INTRA-CONFIG-VALIDATOR/var/"
-        };*/
+                "PILOT",
+                "D:/TEST CASE/KBI-PILOT-CONFIG-VALIDATOR/DEPLOY/PILOT",
+                "D:/TEST CASE/KBI-PILOT-CONFIG-VALIDATOR/var/"
+        };
 
-        DividerHelper dividerHelper = new DividerHelper(args);
+        DividerHelper dividerHelper = new DividerHelper(argsTest);
         dividerHelper.initFiles();
 
         //ConfigHelperHTML helperHTML = new ConfigHelperHTML(args);

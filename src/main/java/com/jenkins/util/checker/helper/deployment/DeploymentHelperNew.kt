@@ -139,6 +139,7 @@ class DeploymentHelperNew(private val listDeployment: MutableList<DividerModels>
 
                             print("GetFilePath: $getSubPath --> isContains $getLocationArtifact? ")
                             getSubPath?.let {
+                                println("subpath -> ${path}")
                                 if (it.toString().contains(getLocationArtifact)) {
                                     totalConfigData += 1 //Count How Many Files Are Compared
                                     println("[TRUE]")
@@ -151,10 +152,27 @@ class DeploymentHelperNew(private val listDeployment: MutableList<DividerModels>
                                         stbAppendTableData("center", tableDataFile)
                                     } else {
                                         failedConfigData += 1 //If Failed Add Counter
-                                        val errorDeployment = ErrorDeployment(configType, getParentFile, it, getFileName)
+                                        val errorDeployment = ErrorDeployment(configType, getParentFile, it, "<mark>$getFileName</mark> [Incorrect File] in Directory")
                                         listErrorPath?.add(errorDeployment)
 
                                         val tableDataFile = mutableListOf<Any>((fileIndex + 1), pathLink, "<p class=\"listData\">$getFileName</p>", sizeOfFile, generateMD5.toString(), "<p class=\"failed\">$strFailed</p>", strIncorrectFile)
+                                        stbAppendTableData("center", tableDataFile)
+                                    }
+
+                                    //filtering files matched with artifactName
+                                    val isFound = File(path).parentFile.listFiles()?.let { data ->
+                                        data.filter { filter ->
+                                            println("filter -> $filter")
+                                            filter.name == getNameArtifact
+                                        }
+                                    }
+
+                                    //To check if Data File Exist in Dir or Not
+                                    if(isFound.isNullOrEmpty()){
+                                        val errorDeployment = ErrorDeployment(configType, getParentFile, it, "<mark>$getNameArtifact</mark> [Not Found] in Directory")
+                                        listErrorPath?.add(errorDeployment)
+
+                                        val tableDataFile = mutableListOf<Any>((fileIndex + 1), pathLink, "<p class=\"failed\">XXXXX</p>", "<p class=\"failed\">XXXXX</p>", "<p class=\"failed\">XXXXX</p>", "<p class=\"failed\">$strFailed</p>", String.format(strNotFoundFile, getNameArtifact))
                                         stbAppendTableData("center", tableDataFile)
                                     }
                                 } else {
@@ -268,8 +286,8 @@ class DeploymentHelperNew(private val listDeployment: MutableList<DividerModels>
         println("configFile -> $configFile")
         configFile?.let { config ->
             deployPropFile = if (destinationPath.isNullOrEmpty()) {
-                File("var/", "DeployProp.properties") //For Real Using
-                //File("DeployProp.properties") //For Testing
+                //File("var/", "DeployProp.properties") //For Real Using
+                File("DeployProp.properties") //For Testing
             } else {
                 File(destinationPath, "DeployProp.properties")
             }

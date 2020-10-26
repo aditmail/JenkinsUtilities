@@ -45,6 +45,7 @@ const val strPassed = "PASSED"
 const val strFailed = "FAILED"
 const val strErrorList = "ERROR LIST"
 const val strIncorrectFile = "<b>[Is not the Correct Files]</b> &#10060;"
+const val strNotFoundFile = "<mark>%1s</mark><b>[Files Not Found]</b> &#10060;"
 const val strCorrectFile = "<b>[Is Successfully Mapped]</b> &#9989;"
 
 const val strConfigPassedHTML = "&#8258;<u>NOTES</u>:: <b>%1s %2s</b> from Config (.txt) %3s <b>Successfully Mapped</b> to Selected Directories &#9989;"
